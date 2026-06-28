@@ -6,6 +6,7 @@ version = 4
 name = "Openingheimer"
 version = "0.1.0"
 dependencies = [
+ "i-slint-backend-winit",
  "slint",
  "slint-build",
 ]

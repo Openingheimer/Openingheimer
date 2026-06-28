@@ -2,13 +2,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::error::Error;
-use slint::LogicalPosition;
+use i_slint_backend_winit::WinitWindowAccessor;
+use slint::PhysicalSize;
 
 slint::include_modules!();
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let ui = init_ui()?;
+    let ui = AppWindow::new()?;
 
+    set_screen_size(&ui)?;
     init_callbacks(&ui)?;
 
     ui.run()?;
@@ -16,12 +18,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn init_ui() -> Result<AppWindow, Box<dyn Error>> {
-    let ui = AppWindow::new()?;
+fn set_screen_size(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
+    let ui_weak = ui.as_weak();
+    slint::invoke_from_event_loop(move || {
+        if let Some(ui) = ui_weak.upgrade() {
+            let window = ui.window();
+            window.with_winit_window(|winit_window| {
 
-    ui.window().set_position(LogicalPosition::new(100 as f32, 100 as f32));
+                if let Some(monitor) = winit_window.current_monitor() {
+                    let size = monitor.size();
+                    window.set_size(PhysicalSize::new(size.width, size.height));
+                    window.set_maximized(true);
+                    //window.set_fullscreen(true);
+                }
+            });
+        }
+    })?;
 
-    Ok(ui)
+    return Ok(())
 }
 
 fn init_callbacks(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
