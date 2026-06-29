@@ -11,7 +11,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let ui = AppWindow::new()?;
 
     set_screen_size(&ui)?;
-    init_callbacks(&ui)?;
 
     ui.run()?;
 
@@ -36,15 +35,4 @@ fn set_screen_size(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
     })?;
 
     return Ok(())
-}
-
-fn init_callbacks(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
-    let ui_handle = ui.as_weak();
-
-    ui.on_request_increase_value(move || {
-        let ui = ui_handle.unwrap();
-        ui.set_counter(ui.get_counter() + 1);
-    });
-
-    Ok(())
 }

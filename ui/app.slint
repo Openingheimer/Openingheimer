@@ -3,19 +3,48 @@ import { Button, VerticalBox } from "std-widgets.slint";
 export component AppWindow inherits Window {
     title: "Openingheimer";
     full-screen: false;
-    in-out property <int> counter: 42;
-    callback request-increase-value();
+
+    in-out property <bool> boardFlipped: false;
+
+    property <int> boardHeight: 600;
+    property <int> boardWidth: 600;
+    property <[string]> files: ["a", "b", "c", "d", "e", "f", "g", "h"];
+    property <[string]> ranks: ["1", "2", "3", "4", "5", "6", "7", "8"];
+    property <string> squareClicked;
+
     VerticalBox {
 
-        Text {
-            text: "Counter: \{root.counter}";
-        }
+     padding-left: 100px;
 
-        Button {
-            text: "Increase value";
-            clicked => {
-                root.request-increase-value();
+        image := Image {
+            width: boardWidth * 1px;
+            height: boardHeight * 1px;
+            source: @image-url("../images/board.png");
+
+            TouchArea {
+                width: image.width;
+                height: image.height;
+
+                clicked => {
+                    root.squareClicked = getSquare(self.mouse-x / 1px, self.mouse-y / 1px);
+                }
             }
         }
+
+        Text {
+            text: "Square Clicked: \{root.squareClicked}";
+        }
+    }
+
+    function getSquare(x: int, y: int) -> string {
+
+        let rank = floor(y / (boardHeight / 8));
+        let file = floor(x / (boardWidth / 8));
+
+        //too bad I can't reverse
+        let adjustedRank = boardFlipped ? rank : 7 - rank;
+        let adjustedFile = boardFlipped ? 7 - file : file;
+
+        return files[adjustedFile] + ranks[adjustedRank];
     }
 }
