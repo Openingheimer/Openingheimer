@@ -2,8 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::error::Error;
+use std::iter::repeat;
 use i_slint_backend_winit::WinitWindowAccessor;
 use slint::PhysicalSize;
+use slint::SharedString;
 
 slint::include_modules!();
 
@@ -12,9 +14,45 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     set_screen_size(&ui)?;
 
+     ui.global::<Callbacks>().on_piece_from_fen(|fen, index| {
+        get_piece_from_fen(fen, index)
+    });
+
     ui.run()?;
 
     Ok(())
+}
+
+fn get_piece_from_fen(fen: SharedString, cell_index: i32) -> SharedString {
+
+    let piece_placement = fen.split(' ').next().unwrap();
+    let mut ranks = piece_placement.split('/');
+
+    let rank_index = (cell_index / 8) as usize;
+    let file_index = (cell_index % 8) as usize;
+
+    let cell_rank = ranks.nth(rank_index).unwrap_or("");
+    let row = pad_empty_squares(cell_rank.to_string());
+
+    let value = row
+        .chars()
+        .nth(file_index)
+        .unwrap_or('.');
+
+    value.to_string().into()
+}
+
+fn pad_empty_squares(fen_row: String) -> SharedString {
+    let mut output = String::new();
+
+    for c in fen_row.chars() {
+        match c.to_digit(10) {
+            Some(n) => output.extend(repeat('.').take(n as usize)),
+            None => output.push(c),
+        }
+    }
+
+    output.into()
 }
 
 fn set_screen_size(ui: &AppWindow) -> Result<(), Box<dyn Error>> {

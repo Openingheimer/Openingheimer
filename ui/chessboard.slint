@@ -1,0 +1,66 @@
+
+export component Chessboard {
+
+    width: boardSize * 1px;
+    height: boardSize * 1px;
+
+    in-out property <bool> boardFlipped: false;
+    in-out property <int> boardSize: 600;
+
+    property <[string]> files: ["a", "b", "c", "d", "e", "f", "g", "h"];
+    property <[string]> ranks: ["8", "7", "6", "5", "4", "3", "2", "1"];
+    property <color> light: #EDD6B0;
+    property <color> dark: #B88762;
+    property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+    pure callback piece_from_fen(string, int) -> string;
+
+    VerticalLayout {
+        property <length> cellSize: (boardSize / 8) * 1px;
+
+        grid := GridLayout {
+            property <string> square_clicked;
+
+            for rank[r] in ranks: Row {
+                for file[f] in files: Rectangle{
+
+                    background: mod(f + r, 2) == 0 ? light : dark;
+                    property <string> square: file + rank;
+
+                    TouchArea {
+                        clicked => {
+                            grid.square_clicked = square;
+                        }
+                    }
+
+                    Image {
+                        width: cellSize;
+                        height: cellSize;
+                        source: piece_image(piece_from_fen(fen, f + (r * 8)));
+                    }
+                }
+            }
+        }
+
+        Text {
+            text: "Square Clicked: \{grid.square_clicked}";
+        }
+    }
+
+     function piece_image(cellValue: string) -> image {
+        if (cellValue == "P") {return @image-url("wp.png");}
+        if (cellValue == "N") {return @image-url("wn.png");}
+        if (cellValue == "B") {return @image-url("wb.png");}
+        if (cellValue == "R") {return @image-url("wr.png");}
+        if (cellValue == "Q") {return @image-url("wq.png");}
+        if (cellValue == "K") {return @image-url("wk.png");}
+        if (cellValue == "p") {return @image-url("bp.png");}
+        if (cellValue == "n") {return @image-url("bn.png");}
+        if (cellValue == "b") {return @image-url("bb.png");}
+        if (cellValue == "r") {return @image-url("br.png");}
+        if (cellValue == "q") {return @image-url("bq.png");}
+        if (cellValue == "k") {return @image-url("bk.png");}
+
+        return @image-url("void.svg");
+    }
+}
