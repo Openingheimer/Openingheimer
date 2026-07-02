@@ -7,45 +7,84 @@ export component Chessboard {
     in-out property <bool> boardFlipped: false;
     in-out property <int> boardSize: 600;
 
+    property <length> cellSize: (boardSize / 8) * 1px;
     property <[string]> files: ["a", "b", "c", "d", "e", "f", "g", "h"];
     property <[string]> ranks: ["8", "7", "6", "5", "4", "3", "2", "1"];
     property <color> light: #EDD6B0;
     property <color> dark: #B88762;
+    property <color> hightlight : #ffff33;
+
     property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    property <Point> mouse_pos: { x: 0px, y: 0px };
+    property <bool> holding_piece: false;
 
     pure callback piece_from_fen(string, int) -> string;
 
     VerticalLayout {
-        property <length> cellSize: (boardSize / 8) * 1px;
 
-        grid := GridLayout {
+        board := GridLayout {
+
             property <string> square_clicked;
 
             for rank[r] in ranks: Row {
                 for file[f] in files: Rectangle{
 
-                    background: mod(f + r, 2) == 0 ? light : dark;
+                    width: cellSize;
+                    height: cellSize;
+                    background: square == board.square_clicked
+                             ? base_color.mix(hightlight, 0.5)
+                             : base_color;
+
                     property <string> square: file + rank;
+                    property <color> base_color: mod(f + r, 2) == 0 ? light : dark;
 
                     TouchArea {
-                        clicked => {
-                            grid.square_clicked = square;
+                        moved => {
+                             grab_piece(squareImage.source, self.mouse-x, self.mouse-y, f, r)
                         }
-                    }
+                        pointer-event(event) => {
+                            if (event.kind == PointerEventKind.down) {
+                                board.square_clicked = square;
+                                grab_piece(squareImage.source, self.mouse-x, self.mouse-y, f, r)
+                            }
 
-                    Image {
+                            if (event.kind == PointerEventKind.up) {
+                                root.holding_piece = false;
+                            }
+                    }
+                }
+                    squareImage := Image {
                         width: cellSize;
                         height: cellSize;
                         source: piece_image(piece_from_fen(fen, f + (r * 8)));
+                        visible: square != board.square_clicked || (square == board.square_clicked && !root.holding_piece);
                     }
                 }
             }
         }
 
         Text {
-            text: "Square Clicked: \{grid.square_clicked}";
+            text: "Square Clicked: \{board.square_clicked}";
         }
     }
+
+    piece_in_hand_image := Image {
+                        width: cellSize;
+                        height: cellSize;
+                        visible: holding_piece;
+                        x : mouse_pos.x;
+                        y :  mouse_pos.y;
+                    }
+
+     function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int ) {
+
+        let boardx = compute_board_pos(mousex, file);
+        let boardy = compute_board_pos(mousey, rank);
+
+        mouse_pos = {x: boardx, y: boardy };
+        root.holding_piece = true;
+        piece_in_hand_image.source = piece;
+     }
 
      function piece_image(cellValue: string) -> image {
         if (cellValue == "P") {return @image-url("wp.png");}
@@ -62,5 +101,9 @@ export component Chessboard {
         if (cellValue == "k") {return @image-url("bk.png");}
 
         return @image-url("void.svg");
+    }
+
+    function compute_board_pos(coord: length, index: int) -> length {
+        (coord + (index * cellSize)) - (cellSize / 2)
     }
 }
