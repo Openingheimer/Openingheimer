@@ -15,95 +15,160 @@ export component Chessboard {
     property <color> hightlight : #ffff33;
 
     property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    property <Point> mouse_pos: { x: 0px, y: 0px };
-    property <bool> holding_piece: false;
+    property <bool> is_grabbing_piece;
+    property <bool> is_piece_selected;
+    property <string> piece_selected;
+    property <string> square_selected;
+    property <string> destination_square;
+    property<string> debug_info;
 
     pure callback piece_from_fen(string, int) -> string;
 
     VerticalLayout {
 
-        board := GridLayout {
+        Text {
+            text: "Action: \{root.debug_info}";
+            font-size: 24px;
+        }
 
-            property <string> square_clicked;
+        board := GridLayout {
 
             for rank[r] in ranks: Row {
                 for file[f] in files: Rectangle{
 
+                    property <string> square: file + rank;
+                    property <color> square_color : mod(f + r, 2) == 0 ? light : dark;
+
                     width: cellSize;
                     height: cellSize;
-                    background: square == board.square_clicked
-                             ? base_color.mix(hightlight, 0.5)
-                             : base_color;
-
-                    property <string> square: file + rank;
-                    property <color> base_color: mod(f + r, 2) == 0 ? light : dark;
+                    background: square == root.square_selected
+                             ? square_color.mix(hightlight, 0.5)
+                             : square_color;
 
                     TouchArea {
                         moved => {
-                             grab_piece(squareImage.source, self.mouse-x, self.mouse-y, f, r)
-                        }
-                        pointer-event(event) => {
-                            if (event.kind == PointerEventKind.down) {
-                                board.square_clicked = square;
-                                grab_piece(squareImage.source, self.mouse-x, self.mouse-y, f, r)
-                            }
+                            destination_square = get_hovered_square(self.mouse-x, self.mouse-y, f, r);
 
-                            if (event.kind == PointerEventKind.up) {
-                                root.holding_piece = false;
-                            }
+                            grab_piece(squareImage.source, self.mouse-x, self.mouse-y, f, r)
+                        }
+                        pointer-event(event) =>
+                            handle_event(event, square, squareImage.pieceName, squareImage.source,
+                                         self.mouse-x, self.mouse-y, f, r);
+
                     }
-                }
+
                     squareImage := Image {
+                        in-out property <string> pieceName: piece_from_fen(fen, f + (r * 8));
                         width: cellSize;
                         height: cellSize;
-                        source: piece_image(piece_from_fen(fen, f + (r * 8)));
-                        visible: square != board.square_clicked || (square == board.square_clicked && !root.holding_piece);
+                        source: get_image(pieceName);
+                        visible: square != root.square_selected || (square == root.square_selected && !root.is_grabbing_piece);
                     }
                 }
             }
         }
-
-        Text {
-            text: "Square Clicked: \{board.square_clicked}";
-        }
     }
 
-    piece_in_hand_image := Image {
+    grabbed_piece := Image {
+                        in-out property <string> piece;
                         width: cellSize;
                         height: cellSize;
-                        visible: holding_piece;
-                        x : mouse_pos.x;
-                        y :  mouse_pos.y;
+                        visible: root.is_grabbing_piece;
                     }
 
-     function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int ) {
+    function handle_pointer_down(square: string, piece: string, image: image,
+                                 mousex: length, mousey: length, file: int, rank: int) {
 
-        let boardx = compute_board_pos(mousex, file);
-        let boardy = compute_board_pos(mousey, rank);
+        let friendly_piece = rank == 1 || rank == 2;
 
-        mouse_pos = {x: boardx, y: boardy };
-        root.holding_piece = true;
-        piece_in_hand_image.source = piece;
+        if (root.is_piece_selected && !friendly_piece) {
+            root.debug_info = "Move " + square_selected + " " + piece_selected + " to " + square;
+        }
+        else {
+            root.debug_info = "Selected " + square + " " + piece;
+        }
+
+        square_selected = square;
+        destination_square = square;
+        piece_selected = piece;
+
+        grab_piece(image, mousex, mousey, file, rank);
+    }
+
+    function handle_pointer_up(square: string, piece: string) {
+
+        if (root.is_piece_selected && destination_square == square) {
+            square_selected = square;
+            piece_selected = piece;
+        }
+        else if (root.is_piece_selected) {
+            root.is_piece_selected = false;
+            piece_selected = piece;
+            root.debug_info = "Move " + square_selected + " " + piece_selected + " to " + destination_square;
+        }
+        else {
+            root.is_piece_selected = false;
+        }
+
+        root.is_grabbing_piece = false;
+    }
+
+     function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int) {
+
+        let board = get_board_coords(mousex, mousey, file, rank);
+        let imageOffset = cellSize / 2;
+
+        root.is_piece_selected = true;
+        root.is_grabbing_piece = true;
+
+        grabbed_piece.source = piece;
+        grabbed_piece.x = board.x - imageOffset;
+        grabbed_piece.y = board.y - imageOffset;
      }
 
-     function piece_image(cellValue: string) -> image {
-        if (cellValue == "P") {return @image-url("wp.png");}
-        if (cellValue == "N") {return @image-url("wn.png");}
-        if (cellValue == "B") {return @image-url("wb.png");}
-        if (cellValue == "R") {return @image-url("wr.png");}
-        if (cellValue == "Q") {return @image-url("wq.png");}
-        if (cellValue == "K") {return @image-url("wk.png");}
-        if (cellValue == "p") {return @image-url("bp.png");}
-        if (cellValue == "n") {return @image-url("bn.png");}
-        if (cellValue == "b") {return @image-url("bb.png");}
-        if (cellValue == "r") {return @image-url("br.png");}
-        if (cellValue == "q") {return @image-url("bq.png");}
-        if (cellValue == "k") {return @image-url("bk.png");}
+     function get_hovered_square(mousex: length, mousey: length, file: int, rank: int) -> string{
+
+        let board = get_board_coords(mousex, mousey, file, rank);
+
+        let f = files[(board.x / (cellSize))];
+        let r = ranks[(board.y / (cellSize))];
+
+        f + r
+     }
+
+     function get_board_coords(x: length, y: length, f:int, r: int) -> Point {
+
+        let bx = x + (f * cellSize);
+        let by = y + (r * cellSize);
+
+        { x: bx, y: by };
+     }
+
+     function get_image(piece: string) -> image {
+        if (piece == "P") {return @image-url("wp.png");}
+        if (piece == "N") {return @image-url("wn.png");}
+        if (piece == "B") {return @image-url("wb.png");}
+        if (piece == "R") {return @image-url("wr.png");}
+        if (piece == "Q") {return @image-url("wq.png");}
+        if (piece == "K") {return @image-url("wk.png");}
+        if (piece == "p") {return @image-url("bp.png");}
+        if (piece == "n") {return @image-url("bn.png");}
+        if (piece == "b") {return @image-url("bb.png");}
+        if (piece == "r") {return @image-url("br.png");}
+        if (piece == "q") {return @image-url("bq.png");}
+        if (piece == "k") {return @image-url("bk.png");}
 
         return @image-url("void.svg");
     }
 
-    function compute_board_pos(coord: length, index: int) -> length {
-        (coord + (index * cellSize)) - (cellSize / 2)
+    function handle_event(event: PointerEvent, square: string, piece: string, image: image,
+                          mousex: length, mousey: length, file: int, rank: int) {
+
+        if (event.kind == PointerEventKind.down) {
+            handle_pointer_down(square, piece, image, mousex, mousey, file, rank);
+        }
+        else if (event.kind == PointerEventKind.up) {
+            handle_pointer_up(square, piece);
+        }
     }
 }
