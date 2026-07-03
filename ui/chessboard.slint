@@ -1,13 +1,15 @@
 
 export component Chessboard {
 
-    width: boardSize * 1px;
-    height: boardSize * 1px;
+    width: boardpx;
+    height: boardpx;
 
     in-out property <bool> boardFlipped: false;
-    in-out property <int> boardSize: 600;
 
-    property <length> cellSize: (boardSize / 8) * 1px;
+    property <int> BOARD_SIZE: 600;
+
+    property <length> boardpx: BOARD_SIZE * 1px;
+    property <length> cellSize: (boardpx / 8);
     property <[string]> files: ["a", "b", "c", "d", "e", "f", "g", "h"];
     property <[string]> ranks: ["8", "7", "6", "5", "4", "3", "2", "1"];
     property <color> light: #EDD6B0;
@@ -16,7 +18,7 @@ export component Chessboard {
 
     property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     property <bool> is_grabbing_piece;
-    property <bool> is_piece_selected;
+    property <bool> has_piece_selected;
     property <string> piece_selected;
     property <string> square_selected;
     property <string> destination_square;
@@ -80,9 +82,7 @@ export component Chessboard {
     function handle_pointer_down(square: string, piece: string, image: image,
                                  mousex: length, mousey: length, file: int, rank: int) {
 
-        let friendly_piece = rank == 1 || rank == 2;
-
-        if (root.is_piece_selected && !friendly_piece) {
+        if (moving_piece(rank)) {
             root.debug_info = "Move " + square_selected + " " + piece_selected + " to " + square;
         }
         else {
@@ -98,33 +98,47 @@ export component Chessboard {
 
     function handle_pointer_up(square: string, piece: string) {
 
-        if (root.is_piece_selected && destination_square == square) {
+        if (selecting_piece(square)) {
             square_selected = square;
             piece_selected = piece;
         }
-        else if (root.is_piece_selected) {
-            root.is_piece_selected = false;
-            piece_selected = piece;
-            root.debug_info = "Move " + square_selected + " " + piece_selected + " to " + destination_square;
-        }
-        else {
-            root.is_piece_selected = false;
+        else if (releasing_grabbed_piece()) {
+            root.has_piece_selected = false;
+            root.debug_info = "Move " + square_selected + " " + piece + " to " + destination_square;
         }
 
         root.is_grabbing_piece = false;
     }
 
-     function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int) {
+    function moving_piece(rank: int) -> bool {
+
+        let friendly_piece = rank == 1 || rank == 2;
+
+        root.has_piece_selected && !friendly_piece
+    }
+
+    function selecting_piece(square: string) -> bool {
+        root.has_piece_selected && destination_square == square
+    }
+
+    function releasing_grabbed_piece() -> bool {
+        root.has_piece_selected
+    }
+
+    function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int) {
+
+        root.has_piece_selected = true;
+        root.is_grabbing_piece = true;
+        grabbed_piece.source = piece;
 
         let board_coords = get_board_coords(mousex, mousey, file, rank);
         let imageOffset = cellSize / 2;
 
-        root.is_piece_selected = true;
-        root.is_grabbing_piece = true;
+        let clamp_leeway_x = -imageOffset + board.x;
+        let clamp_leeway_y = -imageOffset + board.y;
 
-        grabbed_piece.source = piece;
-        grabbed_piece.x = board_coords.x - imageOffset + board.x;
-        grabbed_piece.y = board_coords.y - imageOffset + board.y;
+        grabbed_piece.x = clamp(board_coords.x - imageOffset + board.x, clamp_leeway_x, boardpx + clamp_leeway_x);
+        grabbed_piece.y = clamp(board_coords.y - imageOffset + board.y, clamp_leeway_y, boardpx + clamp_leeway_y);
      }
 
      function get_hovered_square(mousex: length, mousey: length, file: int, rank: int) -> string{
@@ -159,7 +173,7 @@ export component Chessboard {
         if (piece == "q") {return @image-url("bq.png");}
         if (piece == "k") {return @image-url("bk.png");}
 
-        return @image-url("void.svg");
+        @image-url("void.svg");
     }
 
     function handle_event(event: PointerEvent, square: string, piece: string, image: image,
