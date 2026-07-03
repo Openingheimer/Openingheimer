@@ -26,6 +26,11 @@ export component Chessboard {
 
     VerticalLayout {
 
+        Text {
+            text: "Action: \{root.debug_info}";
+            font-size: 24px;
+        }
+
         board := GridLayout {
 
             for rank[r] in ranks: Row {
@@ -63,10 +68,6 @@ export component Chessboard {
             }
         }
 
-         Text {
-            text: "Action: \{root.debug_info}";
-            font-size: 24px;
-        }
     }
 
     grabbed_piece := Image {
@@ -115,15 +116,15 @@ export component Chessboard {
 
      function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int) {
 
-        let board = get_board_coords(mousex, mousey, file, rank);
+        let board_coords = get_board_coords(mousex, mousey, file, rank);
         let imageOffset = cellSize / 2;
 
         root.is_piece_selected = true;
         root.is_grabbing_piece = true;
 
         grabbed_piece.source = piece;
-        grabbed_piece.x = board.x - imageOffset;
-        grabbed_piece.y = board.y - imageOffset;
+        grabbed_piece.x = board_coords.x - imageOffset + board.x;
+        grabbed_piece.y = board_coords.y - imageOffset + board.y;
      }
 
      function get_hovered_square(mousex: length, mousey: length, file: int, rank: int) -> string{
