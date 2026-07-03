@@ -26,11 +26,6 @@ export component Chessboard {
 
     VerticalLayout {
 
-        Text {
-            text: "Action: \{root.debug_info}";
-            font-size: 24px;
-        }
-
         board := GridLayout {
 
             for rank[r] in ranks: Row {
@@ -66,6 +61,11 @@ export component Chessboard {
                     }
                 }
             }
+        }
+
+         Text {
+            text: "Action: \{root.debug_info}";
+            font-size: 24px;
         }
     }
 
