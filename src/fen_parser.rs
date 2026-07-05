@@ -26,7 +26,6 @@ impl Fen {
 
 pub fn get_piece_code_from_fen(fen: String, cell_index: i32) -> String {
 
-    println!("{}", cell_index);
     let piece_placement = fen.split(' ').next().unwrap();
     let mut ranks = piece_placement.split('/');
 

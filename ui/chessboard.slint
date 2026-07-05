@@ -4,9 +4,11 @@ export component Chessboard {
     width: boardpx;
     height: boardpx;
 
-    in-out property <bool> boardFlipped: false;
-
     property <int> BOARD_SIZE: 600;
+
+    in-out property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    in-out property <string> player_turn: "w";
+    in-out property <bool> boardFlipped: false;
 
     property <length> boardpx: BOARD_SIZE * 1px;
     property <length> cellSize: (boardpx / 8);
@@ -16,11 +18,11 @@ export component Chessboard {
     property <color> dark: #B88762;
     property <color> hightlight : #ffff33;
 
-    property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     property <bool> is_grabbing_piece;
     property <bool> has_piece_selected;
     property <string> piece_selected;
     property <string> square_selected;
+    property <string> color_selected;
     property <string> destination_square;
     property<string> debug_info;
 
@@ -51,19 +53,22 @@ export component Chessboard {
                         moved => {
                             destination_square = get_hovered_square(self.mouse-x, self.mouse-y, f, r);
 
-                            grab_piece(squareImage.source, self.mouse-x, self.mouse-y, f, r)
+                            grab_piece(piece_on_square.source, self.mouse-x, self.mouse-y, f, r)
                         }
                         pointer-event(event) =>
-                            handle_event(event, square, squareImage.pieceName, squareImage.source,
-                                         self.mouse-x, self.mouse-y, f, r);
+                            handle_event(event, square,
+                                        piece_on_square.piece_code,
+                                        piece_on_square.source,
+                                        get_piece_color(piece_on_square.piece_code),
+                                        self.mouse-x, self.mouse-y, f, r);
 
                     }
 
-                    squareImage := Image {
-                        in-out property <string> pieceName: piece_from_fen(fen, f + (r * 8));
+                    piece_on_square := Image {
+                        property <string> piece_code: piece_from_fen(fen, f + (r * 8));
                         width: cellSize;
                         height: cellSize;
-                        source: get_image(pieceName);
+                        source: get_image(piece_code);
                         visible: square != root.square_selected || (square == root.square_selected && !root.is_grabbing_piece);
                     }
                 }
@@ -73,32 +78,39 @@ export component Chessboard {
     }
 
     grabbed_piece := Image {
-                        in-out property <string> piece;
+                        property <string> piece;
                         width: cellSize;
                         height: cellSize;
                         visible: root.is_grabbing_piece;
                     }
 
-    function handle_pointer_down(square: string, piece: string, image: image,
+    function handle_pointer_down(square: string, piece: string, image: image, clicked_color: string,
                                  mousex: length, mousey: length, file: int, rank: int) {
 
-        if (moving_piece(rank)) {
+        if (moving_piece(clicked_color)) {
             root.debug_info = "Move " + square_selected + " " + piece_selected + " to " + square;
         }
         else {
             root.debug_info = "Selected " + square + " " + piece;
         }
 
-        square_selected = square;
-        destination_square = square;
-        piece_selected = piece;
+        if (clicked_color != "") {
+            square_selected = square;
+            color_selected = clicked_color;
+            destination_square = square;
+            piece_selected = piece;
 
-        grab_piece(image, mousex, mousey, file, rank);
+            grab_piece(image, mousex, mousey, file, rank);
+        }
+        else {
+            square_selected = "";
+            color_selected = clicked_color
+        }
     }
 
-    function handle_pointer_up(square: string, piece: string) {
+    function handle_pointer_up(square: string, piece: string, clicked_color: string) {
 
-        if (selecting_piece(square)) {
+        if (selecting_piece(square, clicked_color)) {
             square_selected = square;
             piece_selected = piece;
         }
@@ -110,19 +122,19 @@ export component Chessboard {
         root.is_grabbing_piece = false;
     }
 
-    function moving_piece(rank: int) -> bool {
+    function moving_piece(color: string) -> bool {
 
-        let friendly_piece = rank == 1 || rank == 2;
+        let friendly_piece = player_turn == color;
 
-        root.has_piece_selected && !friendly_piece
+        root.has_piece_selected && !friendly_piece && color_selected == player_turn
     }
 
-    function selecting_piece(square: string) -> bool {
-        root.has_piece_selected && destination_square == square
+    function selecting_piece(square: string, color: string) -> bool {
+        root.has_piece_selected && destination_square == square && color != ""
     }
 
     function releasing_grabbed_piece() -> bool {
-        root.has_piece_selected
+        root.has_piece_selected && color_selected == player_turn
     }
 
     function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int) {
@@ -176,14 +188,31 @@ export component Chessboard {
         @image-url("void.svg");
     }
 
+      function get_piece_color(piece: string) -> string {
+        if (piece == "P") { return "w"; }
+        if (piece == "N") { return "w"; }
+        if (piece == "B") { return "w"; }
+        if (piece == "R") { return "w"; }
+        if (piece == "Q") { return "w"; }
+        if (piece == "K") { return "w"; }
+        if (piece == "p") { return "b"; }
+        if (piece == "n") { return "b"; }
+        if (piece == "b") { return "b"; }
+        if (piece == "r") { return "b"; }
+        if (piece == "q") { return "b"; }
+        if (piece == "k") { return "b"; }
+
+        ""
+    }
+
     function handle_event(event: PointerEvent, square: string, piece: string, image: image,
-                          mousex: length, mousey: length, file: int, rank: int) {
+                          color: string,  mousex: length, mousey: length, file: int, rank: int) {
 
         if (event.kind == PointerEventKind.down) {
-            handle_pointer_down(square, piece, image, mousex, mousey, file, rank);
+            handle_pointer_down(square, piece, image, color, mousex, mousey, file, rank);
         }
         else if (event.kind == PointerEventKind.up) {
-            handle_pointer_up(square, piece);
+            handle_pointer_up(square, piece, color);
         }
     }
 }
