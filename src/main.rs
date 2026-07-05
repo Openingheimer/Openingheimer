@@ -1,58 +1,63 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod grand_master;
+mod fen_parser;
+
 use std::error::Error;
-use std::iter::repeat;
 use i_slint_backend_winit::WinitWindowAccessor;
 use slint::PhysicalSize;
-use slint::SharedString;
+use crate::fen_parser::*;
+use crate::grand_master::*;
 
 slint::include_modules!();
 
 fn main() -> Result<(), Box<dyn Error>> {
     let ui = AppWindow::new()?;
 
+    let start_pos = String::from("rnb1kbnr/1pqppp1p/2p4P/1P6/3P2p1/p4N2/P1P1PPP1/RNBQKB1R b KQkq - 1 9");
+
+	// let start_square: String = args.get(1).expect("").parse().expect("");
+	// let end_square: String = args.get(2).expect("").parse().expect("");
+
+	// let from64 = square_to_index64(start_square);
+	// let to64 = square_to_index64(end_square);
+
+	// let mut fen = parse_fen(start_pos);
+	// let player_turn = match fen.active_color.as_str() {
+	// 	"w" => Color::White,
+	// 	_ => Color::Black
+	// };
+
+	// let move_result = try_making_move(fen.piece_placement.clone(), from64, to64, player_turn);
+
+	// if move_result.sucess {
+	// 	fen.piece_placement = move_result.piece_placement;
+	// 	fen.en_passant = move_result.en_passant;
+
+	// 	match fen.active_color.as_str() {
+	// 	    "w" => fen.active_color = "b".to_string(),
+	// 	    _ => {
+	// 	        fen.full_move_number += 1;
+	// 	        fen.active_color = "w".to_string();
+	// 	    }
+	// 	}
+	// }
+	// else{
+	// 	println!("{}", move_result.reason);
+	// }
+
+	// println!("{}", fen.to_fen());
+
     set_screen_size(&ui)?;
 
      ui.global::<Callbacks>().on_piece_from_fen(|fen, index| {
-        get_piece_from_fen(fen, index)
+        get_piece_code_from_fen(fen.to_string(), index).into()
     });
 
     ui.run()?;
 
     Ok(())
-}
-
-fn get_piece_from_fen(fen: SharedString, cell_index: i32) -> SharedString {
-
-    let piece_placement = fen.split(' ').next().unwrap();
-    let mut ranks = piece_placement.split('/');
-
-    let rank_index = (cell_index / 8) as usize;
-    let file_index = (cell_index % 8) as usize;
-
-    let cell_rank = ranks.nth(rank_index).unwrap_or("");
-    let row = pad_empty_squares(cell_rank.to_string());
-
-    let value = row
-        .chars()
-        .nth(file_index)
-        .unwrap_or('.');
-
-    value.to_string().into()
-}
-
-fn pad_empty_squares(fen_row: String) -> SharedString {
-    let mut output = String::new();
-
-    for c in fen_row.chars() {
-        match c.to_digit(10) {
-            Some(n) => output.extend(repeat('.').take(n as usize)),
-            None => output.push(c),
-        }
-    }
-
-    output.into()
 }
 
 fn set_screen_size(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
