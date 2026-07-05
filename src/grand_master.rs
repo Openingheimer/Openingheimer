@@ -1,3 +1,5 @@
+use slint::SharedString;
+
 use crate::fen_parser::*;
 
 #[derive(Clone)]
@@ -17,6 +19,7 @@ pub enum Color {
 	Black
 }
 
+#[derive(Clone)]
 pub struct MoveResult {
 	sucess: bool,
 	reason: String, //todo remove
@@ -31,6 +34,7 @@ pub struct Piece {
 }
 
 pub trait PieceBrain {
+	#[allow(dead_code)]
     fn as_value(&self) -> i32;
 	fn as_fen(&self) -> char;
 	fn is_legal_move(&self, fen64: String, from64: i32, to64: i32) -> bool;
@@ -78,7 +82,36 @@ impl PieceBrain for Piece {
     }
 }
 
-pub fn try_making_move(padded_piece_placement: String, start64: i32, to64: i32, turn: Color) -> MoveResult {
+pub fn try_making_move(start_fen: SharedString, start_square: SharedString, end_square: SharedString) -> (bool, SharedString, SharedString) {
+
+	let from64 = square_to_index64(start_square);
+	let to64 = square_to_index64(end_square);
+
+	let mut fen = parse_fen(start_fen);
+	let player_turn = match fen.active_color.as_str() {
+		"w" => Color::White,
+		_ => Color::Black
+	};
+
+	let move_result = try_move(fen.piece_placement.clone(), from64, to64, player_turn);
+
+	if move_result.sucess {
+		fen.piece_placement = move_result.piece_placement;
+		fen.en_passant = move_result.en_passant;
+
+		match fen.active_color.as_str() {
+		    "w" => fen.active_color = "b".to_string(),
+		    _ => {
+		        fen.full_move_number += 1;
+		        fen.active_color = "w".to_string();
+		    }
+		}
+	}
+
+	(move_result.sucess, fen.to_fen(), fen.active_color.into())
+}
+
+pub fn try_move(padded_piece_placement: String, start64: i32, to64: i32, turn: Color) -> MoveResult {
 
 	let mut piece_placement: Vec<char> = padded_piece_placement.chars().collect();
 
@@ -177,7 +210,7 @@ fn offset_slashes(index: i32) -> usize {
 	(index + (index / 8)) as usize
 }
 
-fn square_to_index64(square: String) -> i32 {
+fn square_to_index64(square: SharedString) -> i32 {
 
 	let chars: Vec<char> = square.to_lowercase().chars().collect();
 

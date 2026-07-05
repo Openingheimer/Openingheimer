@@ -1,17 +1,18 @@
 use crate::grand_master::*;
 use std::iter::repeat;
+use slint::SharedString;
 
-struct Fen {
-	piece_placement: String,
-	active_color: String,
-	castling_availablity: String,
-	en_passant: String,
-	half_move_clock: i32,
-	full_move_number: i32
+pub struct Fen {
+	pub piece_placement: String,
+	pub active_color: String,
+	pub castling_availablity: String,
+	pub en_passant: String,
+	pub half_move_clock: i32,
+	pub full_move_number: i32
 }
 
 impl Fen {
-    fn to_fen(&self) -> String {
+    pub fn to_fen(&self) -> SharedString {
         format!(
             "{} {} {} {} {} {}",
             unpad_empty_squares(self.piece_placement.clone()),
@@ -20,7 +21,7 @@ impl Fen {
             self.en_passant,
             self.half_move_clock,
             self.full_move_number
-        )
+        ).into()
     }
 }
 
@@ -73,7 +74,7 @@ pub fn get_piece_from_fen(fen: char) -> Option<Piece> {
 	}
 }
 
-fn parse_fen(fen: String) -> Fen {
+pub fn parse_fen(fen: SharedString) -> Fen {
 
 	let fen_fields : Vec<&str> = fen.split(' ').collect();
 

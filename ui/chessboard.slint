@@ -6,7 +6,7 @@ export component Chessboard {
 
     property <int> BOARD_SIZE: 600;
 
-    in-out property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    in-out property <string> fen;
     in-out property <string> player_turn: "w";
     in-out property <bool> boardFlipped: false;
 
@@ -27,6 +27,7 @@ export component Chessboard {
     property<string> debug_info;
 
     pure callback piece_from_fen(string, int) -> string;
+    pure callback make_move(string, string, string) -> bool;
 
     VerticalLayout {
 
@@ -87,24 +88,22 @@ export component Chessboard {
     function handle_pointer_down(square: string, piece: string, image: image, clicked_color: string,
                                  mousex: length, mousey: length, file: int, rank: int) {
 
-        if (moving_piece(clicked_color)) {
-            root.debug_info = "Move " + square_selected + " " + piece_selected + " to " + square;
-        }
-        else {
-            root.debug_info = "Selected " + square + " " + piece;
+        let moved_piece = moving_piece(clicked_color);
+
+        if (moved_piece) {
+            make_move(fen, square_selected, square);
+            square_selected = "";
+            color_selected = clicked_color;
+            root.has_piece_selected = false;
         }
 
-        if (clicked_color != "") {
+        if (clicked_color != "" && moved_piece == false) {
             square_selected = square;
             color_selected = clicked_color;
             destination_square = square;
             piece_selected = piece;
 
             grab_piece(image, mousex, mousey, file, rank);
-        }
-        else {
-            square_selected = "";
-            color_selected = clicked_color
         }
     }
 
@@ -116,7 +115,13 @@ export component Chessboard {
         }
         else if (releasing_grabbed_piece()) {
             root.has_piece_selected = false;
-            root.debug_info = "Move " + square_selected + " " + piece + " to " + destination_square;
+
+            let success = make_move(fen, square_selected, square);
+
+            if (!success) {
+                square_selected = "";
+                piece_selected = "";
+            }
         }
 
         root.is_grabbing_piece = false;
@@ -126,7 +131,7 @@ export component Chessboard {
 
         let friendly_piece = player_turn == color;
 
-        root.has_piece_selected && !friendly_piece && color_selected == player_turn
+        root.has_piece_selected && !friendly_piece
     }
 
     function selecting_piece(square: string, color: string) -> bool {
@@ -134,7 +139,7 @@ export component Chessboard {
     }
 
     function releasing_grabbed_piece() -> bool {
-        root.has_piece_selected && color_selected == player_turn
+        root.has_piece_selected && root.is_grabbing_piece
     }
 
     function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int) {
