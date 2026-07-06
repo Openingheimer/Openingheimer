@@ -3,7 +3,7 @@ use std::iter::repeat;
 use slint::SharedString;
 
 pub struct Fen {
-	pub fen64: String,
+	pub piece_placement: String,
 	pub active_color: String,
 	pub castling_availablity: String,
 	pub en_passant: String,
@@ -15,7 +15,7 @@ impl Fen {
     pub fn to_fen(&self) -> SharedString {
         format!(
             "{} {} {} {} {} {}",
-            unpad_empty_squares(self.fen64.clone()),
+            unpad_empty_squares(self.piece_placement.clone()),
             self.active_color,
             self.castling_availablity,
             self.en_passant,
@@ -30,7 +30,7 @@ impl Fen {
 	let fen_fields : Vec<&str> = fen.split(' ').collect();
 
 	Fen {
-		fen64: pad_empty_squares(fen_fields[0].to_string()),
+		piece_placement: pad_empty_squares(fen_fields[0].to_string()),
 		active_color: fen_fields[1].to_string(),
 		castling_availablity: fen_fields[2].to_string(),
 		en_passant: fen_fields[3].to_string(),

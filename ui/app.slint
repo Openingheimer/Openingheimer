@@ -13,7 +13,7 @@ export component AppWindow inherits Window {
 
     //start fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     in-out property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    in-out property <string> player_color: "w";
+    in-out property <string> player_color;
 
     Chessboard {
         fen: root.fen;

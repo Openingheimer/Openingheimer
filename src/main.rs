@@ -15,14 +15,22 @@ slint::include_modules!();
 fn main() -> Result<(), Box<dyn Error>> {
     let ui = AppWindow::new()?;
 	let ui_handle = ui.as_weak();
-
     set_screen_size(&ui)?;
+
+    let fen = ui.get_fen();
+
+    let player_turn = fen
+        .split(' ')
+        .nth(1)
+        .unwrap();
+
+    ui.set_player_color(player_turn.into());
 
     ui.global::<Callbacks>().on_piece_from_fen(|fen, index| {
         get_piece_code_from_fen(fen.to_string(), index).into()
     });
 
-     ui.global::<Callbacks>().on_color_on_square(|fen, square| {
+    ui.global::<Callbacks>().on_color_on_square(|fen, square| {
         get_piece_color_from_square(fen, square)
     });
 

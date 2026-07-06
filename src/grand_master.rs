@@ -20,10 +20,12 @@ pub enum Color {
 }
 
 #[derive(Clone)]
+#[derive(Default)]
 pub struct MoveResult {
 	sucess: bool,
-	fen64: String,
+	piece_placement: String,
 	en_passant: String,
+	en_passant_capture: bool,
 }
 
 #[derive(Clone)]
@@ -36,21 +38,21 @@ pub struct Piece {
 pub trait PieceBrain {
     fn as_value(&self) -> i32;
 	fn as_fen(&self) -> char;
-	fn is_legal_move(&self, fen64: String, from64: i32, to64: i32) -> bool;
+	fn is_legal_move(&self, fen64: String, from64: i32, to64: i32, en_passant: String) -> MoveResult;
 }
 
 impl PieceBrain for Piece {
 
-	fn is_legal_move(&self, fen64: String, from64: i32, to64: i32) -> bool {
+	fn is_legal_move(&self, fen64: String, from64: i32, to64: i32, en_passant: String) -> MoveResult {
 
         match self.piece_type {
-            PieceType::Pawn => try_pawn_move(self.clone(), fen64, from64, to64),
+            PieceType::Pawn => try_pawn_move(self.clone(), fen64, from64, to64, en_passant),
             // PieceType::Bishop => 'b',
             // PieceType::Knight => 'n',
             // PieceType::Rook => 'r',
             // PieceType::Queen => 'q',
             // PieceType::King => 'k',
-			_ => false
+			_ => MoveResult { sucess: false, piece_placement: fen64 , en_passant: en_passant, en_passant_capture: false}
         }
     }
 
@@ -94,10 +96,10 @@ pub fn try_make_move(start_fen: SharedString, start_square: SharedString, end_sq
 		_ => Color::Black
 	};
 
-	let move_result = make_move(fen.fen64.clone(), from64, to64, player_color);
+	let move_result = make_move(fen.piece_placement.clone(), from64, to64, player_color, fen.en_passant.clone());
 
 	if move_result.sucess {
-		fen.fen64 = move_result.fen64;
+		fen.piece_placement = move_result.piece_placement;
 		fen.en_passant = move_result.en_passant;
 
 		match fen.active_color.as_str() {
@@ -112,36 +114,61 @@ pub fn try_make_move(start_fen: SharedString, start_square: SharedString, end_sq
 	(move_result.sucess, fen.to_fen(), fen.active_color.into())
 }
 
-fn make_move(piece_placement: String, start64: i32, to64: i32, turn: Color) -> MoveResult {
+fn make_move(piece_placement: String, start64: i32, to64: i32, turn: Color, en_passant_avail: String) -> MoveResult {
 
-	let mut fen64: Vec<char> = piece_placement.chars().collect();
+	let mut fen_piece_placement: Vec<char> = piece_placement.chars().collect();
 
 	let start_fen_index = offset_slashes(start64);
 	let to_fen_index = offset_slashes(to64);
 
-	let current_square_code = fen64[start_fen_index];
-	let destination_square_code = fen64[to_fen_index];
+	let current_square_code = fen_piece_placement[start_fen_index];
+	let destination_square_code = fen_piece_placement[to_fen_index];
 
 	let piece = get_piece_from_code(current_square_code);
 	let destination_piece = get_piece_from_code(destination_square_code);
 
-	let move_made = match &piece {
-		Some(p) =>  can_make_move(piece_placement.replace("/", ""), p.clone(), destination_piece, start64, to64, turn),
-		_ => false,
+	let move_result = match &piece {
+		Some(p) =>  can_make_move(
+			piece_placement.replace("/", ""),
+			p.clone(),
+			destination_piece,
+			start64,
+			to64,
+			turn.clone(),
+			en_passant_avail.clone()),
+		_ => MoveResult {
+			sucess:  false,
+			piece_placement: piece_placement,
+			en_passant: en_passant_avail.clone(),
+			en_passant_capture: false
+		},
 	};
 
-	let mut en_passant = "-".to_string();
+	let mut en_passant = en_passant_avail.clone();
 
-	if move_made {
-		fen64[to_fen_index] = current_square_code;
-		fen64[start_fen_index] = '.';
+	if move_result.sucess {
+		fen_piece_placement[to_fen_index] = current_square_code;
+		fen_piece_placement[start_fen_index] = '.';
+
+		if move_result.en_passant_capture {
+
+			let capture_offset: i32 = match turn {
+				Color::White  => 8,
+				Color::Black => -8
+			};
+
+			let captured_pawn = offset_slashes(square_to_index64(en_passant_avail.into()) + capture_offset);
+
+			fen_piece_placement[captured_pawn] = '.';
+		}
 		en_passant = get_en_passant(piece.unwrap().clone(), start64, to64);
 	}
 
 	MoveResult {
-		sucess: move_made,
-		fen64: fen64.into_iter().collect(),
+		sucess: move_result.sucess,
+		piece_placement: fen_piece_placement.into_iter().collect(),
 		en_passant: en_passant.to_string(),
+		en_passant_capture: move_result.en_passant_capture
 	 }
 }
 
@@ -149,19 +176,22 @@ fn can_make_move(
 	fen64: String,
 	piece: Piece,
 	destination_piece: Option<Piece>,
-	start64: i32,
-	end64: i32,
-	turn: Color) -> bool {
+	from64: i32,
+	to64: i32,
+	turn: Color,
+	en_passant_avail: String) -> MoveResult {
+
+	let mut move_result = piece.is_legal_move(fen64, from64, to64, en_passant_avail);
 
 	if piece.color != turn ||
-	   start64 == end64 ||
+	   from64 == to64 ||
 	   friendly_fire(piece.clone(), destination_piece) ||
-	   piece.is_legal_move(fen64, start64, end64) == false {
+	   move_result.sucess == false {
 
-		return false;
+		move_result.sucess = false;
 	}
 
-	true
+	move_result.clone()
 }
 
 fn friendly_fire(piece: Piece, destination_piece: Option<Piece>) -> bool {
@@ -198,7 +228,17 @@ fn get_en_passant(piece: Piece, start64: i32, to64: i32) -> String {
 	}
 }
 
-fn try_pawn_move(pawn: Piece, fen64: String, from64: i32, to64: i32) -> bool {
+fn try_pawn_move(pawn: Piece, fen64: String, from64: i32, to64: i32, en_passant: String) -> MoveResult {
+
+	let marching_forward = is_marching_forward(pawn.clone(), fen64.clone(), from64, to64);
+	let (pawn_capture, en_passant) = is_pawn_capture(fen64.clone(), from64, to64, pawn.color, en_passant);
+
+	let legal_move = marching_forward || pawn_capture;
+
+	MoveResult { sucess: legal_move, en_passant_capture: en_passant, ..Default::default() }
+}
+
+fn is_marching_forward(pawn: Piece, fen64: String, from64: i32, to64: i32) -> bool {
 
 	let can_move_two = match pawn.color {
 		Color::White => (48..=55).contains(&from64),
@@ -206,16 +246,13 @@ fn try_pawn_move(pawn: Piece, fen64: String, from64: i32, to64: i32) -> bool {
 	};
 
 	let requested_move = (from64 - to64).abs();
-	let is_moving_two = can_move_two && requested_move == 16;
+	let moving_two = can_move_two && requested_move == 16;
 	let moving_forward = forwards_movement(pawn.color.clone(), from64, to64);
 
-	let move_is_legal = moving_forward && (requested_move == 8 || (can_move_two && requested_move == 16));
+	let legal_move = moving_forward && (requested_move == 8 || (can_move_two && requested_move == 16));
+	let clear_path = path_is_clear(fen64.clone(), get_pawn_path(from64, to64, moving_two, pawn.color.clone()));
 
-	let clear_path = path_is_clear(fen64.clone(), get_pawn_path(from64, to64, is_moving_two, pawn.color.clone()));
-
-	//todo en passant
-	(clear_path && move_is_legal) ||
-	is_pawn_capture(fen64.clone(), from64, to64, pawn.color)
+	return clear_path && legal_move
 }
 
 fn forwards_movement(color: Color, from64: i32, to64: i32) -> bool {
@@ -225,18 +262,26 @@ fn forwards_movement(color: Color, from64: i32, to64: i32) -> bool {
 	}
 }
 
-fn is_pawn_capture(fen64: String, from64: i32, to64: i32, color: Color) -> bool {
+fn is_pawn_capture(fen64: String, from64: i32, to64: i32, color: Color, en_passant: String) -> (bool, bool) {
 
 	let piece_at_destination = get_piece_from_fen64(fen64, to64);
 	let requested_move = (from64 - to64).abs();
+	let attempted_capture = requested_move == 7 || requested_move == 9;
 
-	if let Some(p) = piece_at_destination {
-		if p.color != color && (requested_move == 7 || requested_move == 9) {
-			return true;
+	match piece_at_destination {
+		Some(p) if p.color != color && attempted_capture  => (true, false),
+		None => {
+			match en_passant.as_str() {
+				"-" => (false, false),
+				_ => {
+				    let en_passant_capture = square_to_index64(en_passant.clone().into()) == to64 && attempted_capture;
+
+					(en_passant_capture, en_passant_capture)
+				}
+			}
 		}
+		_ => (false, false),
 	}
-
-	false
 }
 
 fn get_pawn_path(from64: i32, to64: i32, moving_two: bool, color: Color) -> Vec<i32> {
