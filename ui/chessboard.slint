@@ -1,4 +1,12 @@
 
+export struct BoardSquare {
+    coords: string,
+    piece_color: string,
+    square_color: color,
+    image: image,
+    has_piece: bool,
+}
+
 export component Chessboard {
 
     width: boardpx;
@@ -7,7 +15,7 @@ export component Chessboard {
     property <int> BOARD_SIZE: 600;
 
     in-out property <string> fen;
-    in-out property <string> player_turn: "w";
+    in-out property <string> player_color: "w";
     in-out property <bool> boardFlipped: false;
 
     property <length> boardpx: BOARD_SIZE * 1px;
@@ -16,137 +24,119 @@ export component Chessboard {
     property <[string]> ranks: ["8", "7", "6", "5", "4", "3", "2", "1"];
     property <color> light: #EDD6B0;
     property <color> dark: #B88762;
-    property <color> hightlight : #ffff33;
+    property <color> hightlight: #ffff33;
 
+    property <string> active_coords;
+    property <string> piece_in_hand_color;
+    property <string> dropped_piece_coords;
     property <bool> is_grabbing_piece;
-    property <bool> has_piece_selected;
-    property <string> piece_selected;
-    property <string> square_selected;
-    property <string> color_selected;
-    property <string> destination_square;
-    property<string> debug_info;
 
     pure callback piece_from_fen(string, int) -> string;
     pure callback make_move(string, string, string) -> bool;
+    pure callback color_on_square(string, string) -> string;
 
     VerticalLayout {
-
-        Text {
-            text: "Action: \{root.debug_info}";
-            font-size: 24px;
-        }
 
         board := GridLayout {
 
             for rank[r] in ranks: Row {
-                for file[f] in files: Rectangle{
+                for file[f] in files: Rectangle {
 
-                    property <string> square: file + rank;
-                    property <color> square_color : mod(f + r, 2) == 0 ? light : dark;
+                    property <BoardSquare> board_square: create_bs();
+
+                    board_square_image := Image {
+                        width: cellSize;
+                        height: cellSize;
+                        source: board_square.image;
+                        visible: board_square.has_piece &&
+                            (board_square.coords == active_coords && root.is_grabbing_piece) == false;
+                    }
 
                     width: cellSize;
                     height: cellSize;
-                    background: square == root.square_selected
-                             ? square_color.mix(hightlight, 0.5)
-                             : square_color;
+                    background: active_coords == board_square.coords && board_square.has_piece
+                        ? board_square.square_color.mix(hightlight, 0.5)
+                        : board_square.square_color;
 
                     TouchArea {
                         moved => {
-                            destination_square = get_hovered_square(self.mouse-x, self.mouse-y, f, r);
+                            dropped_piece_coords = get_hovered_square(self.mouse-x, self.mouse-y, f, r);
 
-                            grab_piece(piece_on_square.source, self.mouse-x, self.mouse-y, f, r)
+                            grab_piece(board_square, self.mouse-x, self.mouse-y, f, r)
                         }
-                        pointer-event(event) =>
-                            handle_event(event, square,
-                                        piece_on_square.piece_code,
-                                        piece_on_square.source,
-                                        get_piece_color(piece_on_square.piece_code),
-                                        self.mouse-x, self.mouse-y, f, r);
-
+                        pointer-event(event) => {
+                            if (event.kind == PointerEventKind.down) {
+                                if (event.button == PointerEventButton.right) {
+                                    drop_piece();
+                                }
+                                else {
+                                    pointer_down(board_square, self.mouse-x, self.mouse-y);
+                                }
+                            }
+                            else if (event.kind == PointerEventKind.up) {
+                                pointer_up(board_square);
+                            }
+                        };
                     }
 
-                    piece_on_square := Image {
-                        property <string> piece_code: piece_from_fen(fen, f + (r * 8));
-                        width: cellSize;
-                        height: cellSize;
-                        source: get_image(piece_code);
-                        visible: square != root.square_selected || (square == root.square_selected && !root.is_grabbing_piece);
+                    function pointer_down(bs: BoardSquare, mousex: length, mousey: length) {
+
+                        if (making_move(bs)) {
+                            make_move(fen, active_coords, bs.coords);
+                        }
+                        else {
+                            grab_piece(bs, mousex, mousey, f, r);
+                        }
+
+                        active_coords = bs.coords;
+                    }
+
+                    function pointer_up(bs: BoardSquare) {
+
+                        if (releasing_grabbed_piece(bs)) {
+                            move_piece();
+                        }
+                        root.dropped_piece_coords = "";
+                        root.is_grabbing_piece = false;
+                    }
+
+                    function create_bs() -> BoardSquare {
+                        let fen_code = piece_from_fen(fen, f + (r * 8));
+
+                        return {
+                            coords: file + rank,
+                            piece_color: color_on_square(fen, file + rank),
+                            square_color: mod(f + r, 2) == 0 ? light : dark,
+                            image: get_image(fen_code),
+                            has_piece: fen_code != "."
+                        };
                     }
                 }
             }
         }
-
     }
 
     grabbed_piece := Image {
-                        property <string> piece;
-                        width: cellSize;
-                        height: cellSize;
-                        visible: root.is_grabbing_piece;
-                    }
-
-    function handle_pointer_down(square: string, piece: string, image: image, clicked_color: string,
-                                 mousex: length, mousey: length, file: int, rank: int) {
-
-        let moved_piece = moving_piece(clicked_color);
-
-        if (moved_piece) {
-            make_move(fen, square_selected, square);
-            square_selected = "";
-            color_selected = clicked_color;
-            root.has_piece_selected = false;
-        }
-
-        if (clicked_color != "" && moved_piece == false) {
-            square_selected = square;
-            color_selected = clicked_color;
-            destination_square = square;
-            piece_selected = piece;
-
-            grab_piece(image, mousex, mousey, file, rank);
-        }
+        width: cellSize;
+        height: cellSize;
+        visible: root.is_grabbing_piece;
     }
 
-    function handle_pointer_up(square: string, piece: string, clicked_color: string) {
-
-        if (selecting_piece(square, clicked_color)) {
-            square_selected = square;
-            piece_selected = piece;
-        }
-        else if (releasing_grabbed_piece()) {
-            root.has_piece_selected = false;
-
-            let success = make_move(fen, square_selected, square);
-
-            if (!success) {
-                square_selected = "";
-                piece_selected = "";
-            }
-        }
-
-        root.is_grabbing_piece = false;
+    function making_move(bs: BoardSquare) -> bool {
+        bs.piece_color != player_color && our_piece()
     }
 
-    function moving_piece(color: string) -> bool {
-
-        let friendly_piece = player_turn == color;
-
-        root.has_piece_selected && !friendly_piece
+    function releasing_grabbed_piece(bs: BoardSquare) -> bool {
+        root.is_grabbing_piece &&
+            root.dropped_piece_coords != "" &&
+            root.dropped_piece_coords != bs.coords
     }
 
-    function selecting_piece(square: string, color: string) -> bool {
-        root.has_piece_selected && destination_square == square && color != ""
-    }
+    function grab_piece(bs: BoardSquare, mousex: length, mousey: length, file: int, rank: int) {
 
-    function releasing_grabbed_piece() -> bool {
-        root.has_piece_selected && root.is_grabbing_piece
-    }
-
-    function grab_piece(piece: image, mousex: length, mousey: length, file: int, rank: int) {
-
-        root.has_piece_selected = true;
         root.is_grabbing_piece = true;
-        grabbed_piece.source = piece;
+        grabbed_piece.source = bs.image;
+        piece_in_hand_color = bs.piece_color;
 
         let board_coords = get_board_coords(mousex, mousey, file, rank);
         let imageOffset = cellSize / 2;
@@ -156,9 +146,28 @@ export component Chessboard {
 
         grabbed_piece.x = clamp(board_coords.x - imageOffset + board.x, clamp_leeway_x, boardpx + clamp_leeway_x);
         grabbed_piece.y = clamp(board_coords.y - imageOffset + board.y, clamp_leeway_y, boardpx + clamp_leeway_y);
-     }
+    }
 
-     function get_hovered_square(mousex: length, mousey: length, file: int, rank: int) -> string{
+    function move_piece() {
+
+        let destination_color = color_on_square(fen, dropped_piece_coords);
+
+        if (destination_color != player_color && our_piece()) {
+            make_move(fen, active_coords, dropped_piece_coords)
+        }
+        else if (our_piece() == false) {
+            active_coords = "";
+        }
+    }
+
+    function drop_piece() {
+        root.piece_in_hand_color = "";
+        root.active_coords = "";
+        root.is_grabbing_piece = false;
+        root.dropped_piece_coords = "";
+    }
+
+    function get_hovered_square(mousex: length, mousey: length, file: int, rank: int) -> string {
 
         let board = get_board_coords(mousex, mousey, file, rank);
 
@@ -166,58 +175,33 @@ export component Chessboard {
         let r = ranks[(board.y / (cellSize))];
 
         f + r
-     }
+    }
 
-     function get_board_coords(x: length, y: length, f:int, r: int) -> Point {
+    function get_board_coords(x: length, y: length, f: int, r: int) -> Point {
 
         let bx = x + (f * cellSize);
         let by = y + (r * cellSize);
 
         { x: bx, y: by };
-     }
+    }
 
-     function get_image(piece: string) -> image {
-        if (piece == "P") {return @image-url("wp.png");}
-        if (piece == "N") {return @image-url("wn.png");}
-        if (piece == "B") {return @image-url("wb.png");}
-        if (piece == "R") {return @image-url("wr.png");}
-        if (piece == "Q") {return @image-url("wq.png");}
-        if (piece == "K") {return @image-url("wk.png");}
-        if (piece == "p") {return @image-url("bp.png");}
-        if (piece == "n") {return @image-url("bn.png");}
-        if (piece == "b") {return @image-url("bb.png");}
-        if (piece == "r") {return @image-url("br.png");}
-        if (piece == "q") {return @image-url("bq.png");}
-        if (piece == "k") {return @image-url("bk.png");}
+    function our_piece() -> bool {
+        piece_in_hand_color == player_color
+    }
 
+    function get_image(piece: string) -> image {
+        if (piece == "P") { return @image-url("wp.png"); }
+        if (piece == "N") { return @image-url("wn.png"); }
+        if (piece == "B") { return @image-url("wb.png"); }
+        if (piece == "R") { return @image-url("wr.png"); }
+        if (piece == "Q") { return @image-url("wq.png"); }
+        if (piece == "K") { return @image-url("wk.png"); }
+        if (piece == "p") { return @image-url("bp.png"); }
+        if (piece == "n") { return @image-url("bn.png"); }
+        if (piece == "b") { return @image-url("bb.png"); }
+        if (piece == "r") { return @image-url("br.png"); }
+        if (piece == "q") { return @image-url("bq.png"); }
+        if (piece == "k") { return @image-url("bk.png"); }
         @image-url("void.svg");
-    }
-
-      function get_piece_color(piece: string) -> string {
-        if (piece == "P") { return "w"; }
-        if (piece == "N") { return "w"; }
-        if (piece == "B") { return "w"; }
-        if (piece == "R") { return "w"; }
-        if (piece == "Q") { return "w"; }
-        if (piece == "K") { return "w"; }
-        if (piece == "p") { return "b"; }
-        if (piece == "n") { return "b"; }
-        if (piece == "b") { return "b"; }
-        if (piece == "r") { return "b"; }
-        if (piece == "q") { return "b"; }
-        if (piece == "k") { return "b"; }
-
-        ""
-    }
-
-    function handle_event(event: PointerEvent, square: string, piece: string, image: image,
-                          color: string,  mousex: length, mousey: length, file: int, rank: int) {
-
-        if (event.kind == PointerEventKind.down) {
-            handle_pointer_down(square, piece, image, color, mousex, mousey, file, rank);
-        }
-        else if (event.kind == PointerEventKind.up) {
-            handle_pointer_up(square, piece, color);
-        }
     }
 }

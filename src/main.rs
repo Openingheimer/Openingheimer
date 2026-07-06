@@ -22,15 +22,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         get_piece_code_from_fen(fen.to_string(), index).into()
     });
 
+     ui.global::<Callbacks>().on_color_on_square(|fen, square| {
+        get_piece_color_from_square(fen, square)
+    });
+
 	ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
 
-        let (success, new_position, player_turn) = try_making_move(fen, origin, destination);
+        let (success, new_position, player_color) = try_make_move(fen, origin, destination);
 
 		if success {
 			let handle = ui_handle.unwrap();
 
 			 handle.set_fen(new_position);
-			 handle.set_player_turn(player_turn);
+			 handle.set_player_color(player_color);
 		}
 
         return success;
