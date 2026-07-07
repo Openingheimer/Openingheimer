@@ -255,18 +255,28 @@ fn is_marching_forward(pawn: Piece, fen64: String, from64: i32, to64: i32) -> bo
 	return clear_path && legal_move
 }
 
-fn forwards_movement(color: Color, from64: i32, to64: i32) -> bool {
-	match color {
-		Color::White => from64 > to64,
-		Color::Black => from64 < to64
-	}
-}
-
 fn is_pawn_capture(fen64: String, from64: i32, to64: i32, color: Color, en_passant: String) -> (bool, bool) {
 
 	let piece_at_destination = get_piece_from_fen64(fen64, to64);
 	let requested_move = (from64 - to64).abs();
-	let attempted_capture = requested_move == 7 || requested_move == 9;
+
+	let a_pawn = from64 % 8 == 0;
+	let h_pawn = (from64 + 1) % 8 == 0;
+	let rook_pawn = a_pawn || h_pawn;
+
+	let attempted_capture = match rook_pawn {
+		false => requested_move == 7 || requested_move == 9,
+		true => match a_pawn {
+			true => match color {
+				Color::White => requested_move == 7,
+				Color::Black => requested_move == 9,
+			},
+			false => match color {
+				Color::White => requested_move == 9,
+				Color::Black => requested_move == 7,
+			},
+		},
+	} && forwards_movement(color.clone(), from64, to64);
 
 	match piece_at_destination {
 		Some(p) if p.color != color && attempted_capture  => (true, false),
@@ -281,6 +291,13 @@ fn is_pawn_capture(fen64: String, from64: i32, to64: i32, color: Color, en_passa
 			}
 		}
 		_ => (false, false),
+	}
+}
+
+fn forwards_movement(color: Color, from64: i32, to64: i32) -> bool {
+	match color {
+		Color::White => from64 > to64,
+		Color::Black => from64 < to64
 	}
 }
 
