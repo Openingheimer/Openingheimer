@@ -2,12 +2,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod grand_master;
-mod fen_parser;
+mod fen_master;
+mod model;
 
 use std::error::Error;
 use i_slint_backend_winit::WinitWindowAccessor;
 use slint::PhysicalSize;
-use crate::fen_parser::*;
+use crate::fen_master::*;
 use crate::grand_master::*;
 
 slint::include_modules!();
