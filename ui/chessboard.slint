@@ -82,7 +82,11 @@ export component Chessboard {
                     function pointer_down(bs: BoardSquare, mousex: length, mousey: length) {
 
                         if (making_move(bs)) {
-                            make_move(fen, active_coords, bs.coords);
+                            let made_move = make_move(fen, active_coords, bs.coords);
+
+                            if made_move == false && bs.piece_color != player_color {
+                                grab_piece(bs, mousex, mousey, f, r)
+                            }
                         }
                         else {
                             grab_piece(bs, mousex, mousey, f, r);
