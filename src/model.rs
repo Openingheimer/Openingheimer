@@ -68,7 +68,8 @@ impl Color {
 #[derive(Clone)]
 #[derive(Default)]
 pub struct MoveResult {
-	pub sucess: bool,
+    //this should only need success and move type
+	pub success: bool,
 	pub piece_placement: String,
 	pub en_passant: String,
 	pub en_passant_capture: bool,
@@ -99,7 +100,7 @@ impl PieceBrain for Piece {
             // PieceType::Queen => 'q',
             // PieceType::King => 'k',
 			_ => MoveResult {
-                sucess: false,
+                success: false,
                 piece_placement: fenboard.piece_placement.into(),
                 en_passant: fenboard.en_passant.into(),
                 en_passant_capture: false

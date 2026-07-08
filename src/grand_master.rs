@@ -9,13 +9,13 @@ pub fn try_make_move(start_fen: SharedString, start_square: SharedString, end_sq
 
 	let move_result = make_move(fenboard.clone());
 
-	if move_result.sucess {
+	if move_result.success {
 		fenboard.piece_placement = move_result.piece_placement.into();
 		fenboard.en_passant = move_result.en_passant.into();
 		add_ply(&mut fenboard);
 	}
 
-	(move_result.sucess, fenboard.to_fen(), fenboard.active_color.as_str().into())
+	(move_result.success, fenboard.to_fen(), fenboard.active_color.as_str().into())
 }
 
 fn make_move(fenboard: FenBoard) -> MoveResult {
@@ -23,7 +23,7 @@ fn make_move(fenboard: FenBoard) -> MoveResult {
 	let move_result = match fenboard.from_piece.clone() {
 		Some(p) => can_make_move(fenboard.clone(), p),
 		_ => MoveResult {
-			sucess:  false,
+			success:  false,
 			piece_placement: fenboard.piece_placement.clone().into(),
 			en_passant: fenboard.en_passant.clone().into(),
 			en_passant_capture: false
@@ -34,12 +34,12 @@ fn make_move(fenboard: FenBoard) -> MoveResult {
 
 	let mut en_passant = fenboard.en_passant.clone().into();
 
-    if move_result.sucess {
+    if move_result.success {
         apply_move(&fenboard, &move_result, &mut piece_placement, &mut en_passant);
     }
 
 	MoveResult {
-		sucess: move_result.sucess,
+		success: move_result.success,
 		piece_placement: piece_placement.into_iter().collect(),
 		en_passant: en_passant.to_string(),
 		en_passant_capture: move_result.en_passant_capture
@@ -53,9 +53,9 @@ fn can_make_move(fenboard: FenBoard, piece: Piece) -> MoveResult {
 	if piece.color != fenboard.active_color ||
 	   fenboard.from64 == fenboard.to64 ||
 	   friendly_fire(piece.clone(), fenboard.to_piece) ||
-	   move_result.sucess == false {
+	   move_result.success == false {
 
-		move_result.sucess = false;
+		move_result.success = false;
 	}
 
 	move_result.clone()
@@ -66,7 +66,7 @@ pub fn try_pawn_move(pawn: Piece, fenboard: FenBoard) -> MoveResult {
 	let (pawn_capture, en_passant) = is_pawn_capture(pawn.clone(), fenboard.clone());
 	let legal_move = pawn_capture || is_marching_forward(pawn.clone(), fenboard);
 
-	MoveResult { sucess: legal_move, en_passant_capture: en_passant, ..Default::default() }
+	MoveResult { success: legal_move, en_passant_capture: en_passant, ..Default::default() }
 }
 
 fn is_marching_forward(pawn: Piece, fenboard: FenBoard) -> bool {
