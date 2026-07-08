@@ -3,7 +3,6 @@ use crate::fen_master::*;
 use slint::SharedString;
 
 #[derive(Clone)]
-#[derive(Default)]
 pub struct FenBoard {
 	pub piece_placement: SharedString,
     pub fen64: SharedString,
@@ -68,7 +67,6 @@ impl Color {
 }
 
 #[derive(Clone)]
-#[derive(Default)]
 pub struct MoveResult {
 	pub success: bool,
     pub fenboard: FenBoard,
