@@ -38,7 +38,8 @@ use slint::SharedString;
 		from_fen71: from_fen_index,
 		to_fen71: to_fen_index,
 		from64: from64,
-		to64: to64
+		to64: to64,
+		san_move: to_coords.into()
 	}
 }
 

@@ -1,6 +1,6 @@
 import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 import { Chessboard } from "chessboard.slint";
-import { MoveText } from "movetext.slint";
+import { Moves, MoveText } from "movetext.slint";
 
 export global Callbacks {
     pure callback piece_from_fen(string, int) -> string;
@@ -15,6 +15,7 @@ export component AppWindow inherits Window {
     //start fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     in-out property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     in-out property <string> player_color;
+    in-out property <[Moves]> moves;
 
     HorizontalBox {
         alignment: center;
@@ -28,6 +29,8 @@ export component AppWindow inherits Window {
             color_on_square(f, square) => Callbacks.color_on_square(f, square);
         }
 
-        MoveText { }
+        MoveText {
+            moves: root.moves;
+        }
     }
 }

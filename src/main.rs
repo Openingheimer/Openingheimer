@@ -6,10 +6,12 @@ mod fen_master;
 mod model;
 
 use std::error::Error;
-use i_slint_backend_winit::WinitWindowAccessor;
+use std::rc::Rc;
 use slint::PhysicalSize;
+use slint::Model;
 use crate::fen_master::*;
 use crate::grand_master::*;
+use i_slint_backend_winit::WinitWindowAccessor;
 
 slint::include_modules!();
 
@@ -37,14 +39,31 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
 
-        let (success, new_position, player_color) = try_make_move(fen, origin, destination);
+        let (success, new_position, player_color, san_move) = try_make_move(fen, origin, destination);
 
 		if success {
-			let handle = ui_handle.unwrap();
+            let handle = ui_handle.unwrap();
 
-			 handle.set_fen(new_position);
-			 handle.set_player_color(player_color);
-		}
+            handle.set_fen(new_position);
+            handle.set_player_color(player_color.clone());
+
+
+            let moves = handle.get_moves();
+
+            let mut move_list: Vec<Moves> = moves.iter().collect();
+
+            match player_color.as_str() {
+                "b" => move_list.push(Moves {
+                    white: san_move.into(),
+                    black: "".into()
+                }),
+                _ =>  if let Some(last_move) = move_list.last_mut() {
+                        last_move.black = san_move.into();
+                    }
+            }
+
+            handle.set_moves(Rc::new(slint::VecModel::from(move_list)).into());
+        }
 
         return success;
     });

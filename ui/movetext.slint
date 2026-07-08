@@ -6,6 +6,8 @@ import {
     ScrollView,
 } from "std-widgets.slint";
 
+export struct Moves { white: string, black: string }
+
 export component MoveText {
     width: 400px;
     height: 400px;
@@ -14,16 +16,7 @@ export component MoveText {
     property <color> light: #454441;
     property <color> dark: #41403D;
 
-    in property <[{ white: string, black: string }]> moves: [
-        { white: "Nc3", black: "Nc3" },
-        { white: "d5", black: "exd5" },
-        { white: "Rh6", black: "Rhd6" },
-        { white: "exd4", black: "d4" },
-        { white: "Nc3", black: "Nc3" },
-        { white: "", black: "exd5" },
-        { white: "Rh6", black: "Rhd6" },
-        { white: "exd4", black: "5" },
-    ];
+    in property <[Moves]> moves;
 
     Rectangle {
         background: #41403D;

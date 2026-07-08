@@ -18,6 +18,7 @@ pub struct FenBoard {
     pub to_fen71: usize,
     pub from64: i32,
     pub to64: i32,
+    pub san_move: SharedString,
 }
 
 impl FenBoard {
@@ -73,6 +74,7 @@ pub struct MoveResult {
 	pub piece_placement: String,
 	pub en_passant: String,
 	pub en_passant_capture: bool,
+    pub san_move: String
 }
 
 #[derive(Clone)]
@@ -100,10 +102,9 @@ impl PieceBrain for Piece {
             // PieceType::Queen => 'q',
             // PieceType::King => 'k',
 			_ => MoveResult {
-                success: false,
                 piece_placement: fenboard.piece_placement.into(),
                 en_passant: fenboard.en_passant.into(),
-                en_passant_capture: false
+                ..Default::default()
             }
         }
     }

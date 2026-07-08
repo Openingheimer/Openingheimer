@@ -3,7 +3,7 @@ use slint::SharedString;
 use crate::fen_master::*;
 use crate::model::*;
 
-pub fn try_make_move(start_fen: SharedString, start_square: SharedString, end_square: SharedString) -> (bool, SharedString, SharedString) {
+pub fn try_make_move(start_fen: SharedString, start_square: SharedString, end_square: SharedString) -> (bool, SharedString, SharedString, SharedString) {
 
 	let mut fenboard = to_fenboard(start_fen, start_square, end_square);
 
@@ -15,7 +15,7 @@ pub fn try_make_move(start_fen: SharedString, start_square: SharedString, end_sq
 		add_ply(&mut fenboard);
 	}
 
-	(move_result.success, fenboard.to_fen(), fenboard.active_color.as_str().into())
+	(move_result.success, fenboard.to_fen(), fenboard.active_color.as_str().into(), fenboard.san_move)
 }
 
 fn make_move(fenboard: FenBoard) -> MoveResult {
@@ -23,10 +23,9 @@ fn make_move(fenboard: FenBoard) -> MoveResult {
 	let move_result = match fenboard.from_piece.clone() {
 		Some(p) => can_make_move(fenboard.clone(), p),
 		_ => MoveResult {
-			success:  false,
 			piece_placement: fenboard.piece_placement.clone().into(),
 			en_passant: fenboard.en_passant.clone().into(),
-			en_passant_capture: false
+			..Default::default()
 		},
 	};
 
@@ -42,7 +41,8 @@ fn make_move(fenboard: FenBoard) -> MoveResult {
 		success: move_result.success,
 		piece_placement: piece_placement.into_iter().collect(),
 		en_passant: en_passant.to_string(),
-		en_passant_capture: move_result.en_passant_capture
+		en_passant_capture: move_result.en_passant_capture,
+		san_move: fenboard.san_move.into()
 	 }
 }
 
