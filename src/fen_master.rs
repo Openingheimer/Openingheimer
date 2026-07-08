@@ -39,8 +39,84 @@ use slint::SharedString;
 		to_fen71: to_fen_index,
 		from64: from64,
 		to64: to64,
-		san_move: to_coords.into()
+		san_move: to_coords.into(),
+		en_passant_capture: false,
 	}
+}
+
+pub fn apply_move(mut move_result: MoveResult) -> MoveResult {
+
+    update_piece_placement(&mut move_result);
+    update_ply(&mut move_result);
+    update_en_passant(&mut move_result);
+
+    move_result.success = true;
+    move_result
+}
+
+fn update_piece_placement(move_result: &mut MoveResult) {
+
+    let from_piece = move_result.fenboard.from_piece.as_ref().unwrap();
+
+    let mut piece_placement: Vec<char> = move_result.fenboard.piece_placement.chars().collect();
+
+    piece_placement[move_result.fenboard.to_fen71] = from_piece.as_fen();
+    piece_placement[move_result.fenboard.from_fen71] = '.';
+
+    if move_result.fenboard.en_passant_capture {
+        let capture_offset = match move_result.fenboard.active_color {
+            Color::White => 8,
+            Color::Black => -8,
+        };
+
+        let captured_pawn = offset_slashes(
+            square_to_index64(move_result.fenboard.en_passant.clone()) + capture_offset
+        );
+
+        piece_placement[captured_pawn] = '.';
+    }
+
+    move_result.fenboard.piece_placement = piece_placement.into_iter().collect::<String>().into();
+}
+
+fn update_ply(move_result: &mut MoveResult) {
+    match move_result.fenboard.active_color {
+        Color::White => {
+            move_result.fenboard.active_color = Color::Black;
+        }
+        Color::Black => {
+            move_result.fenboard.full_move_number += 1;
+            move_result.fenboard.active_color = Color::White;
+        }
+    }
+}
+
+fn update_en_passant(move_result: &mut MoveResult) {
+
+	let piece = move_result.fenboard.from_piece.as_ref().unwrap().clone();
+    let from64 = move_result.fenboard.from64;
+    let to64 = move_result.fenboard.to64;
+
+	let mut en_passant = "-".to_string();
+
+	move_result.fenboard.en_passant = match piece.piece_type.clone() {
+		PieceType::Pawn => {
+			let moved_two_squares = (from64 - to64).abs() == 16;
+
+			if moved_two_squares {
+				let rank = (((from64 % 8)) as u8 + b'a') as char;
+
+				en_passant = match piece.color {
+					Color::White => format!("{}3", rank),
+					Color::Black => format!("{}6", rank),
+				}
+			}
+
+			en_passant.into()
+		},
+		_ => en_passant.into()
+	}
+
 }
 
  pub fn get_piece_code_from_fen(fen: String, cell_index: i32) -> String {
@@ -108,7 +184,7 @@ pub fn square_to_index64(square: SharedString) -> i32 {
 	((8 - rank) * 8) + file
 }
 
-pub fn offset_slashes(index: i32) -> usize {
+fn offset_slashes(index: i32) -> usize {
 	(index + (index / 8)) as usize
 }
 
@@ -153,54 +229,3 @@ pub fn unpad_empty_squares(piece_placement: SharedString) -> SharedString {
     fen.into()
 }
 
-pub fn apply_move(fenboard: &FenBoard, move_result: &MoveResult, fen_piece_placement: &mut Vec<char>, en_passant: &mut String) {
-
-	fen_piece_placement[fenboard.to_fen71] = fenboard.from_piece.as_ref().unwrap().as_fen();
-    fen_piece_placement[fenboard.from_fen71] = '.';
-
-    if move_result.en_passant_capture {
-        let capture_offset = match fenboard.active_color {
-            Color::White => 8,
-            Color::Black => -8,
-        };
-
-        let captured_pawn = offset_slashes(square_to_index64(fenboard.en_passant.clone()) + capture_offset);
-
-        fen_piece_placement[captured_pawn] = '.';
-    }
-
-    *en_passant = get_en_passant(fenboard.from_piece.as_ref().unwrap().clone(), fenboard.from64, fenboard.to64);
-}
-
-pub fn add_ply(fenboard: &mut FenBoard) {
-    match fenboard.active_color {
-        Color::White => fenboard.active_color = Color::Black,
-        Color::Black => {
-            fenboard.full_move_number += 1;
-            fenboard.active_color = Color::White;
-        }
-    }
-}
-
-pub fn get_en_passant(piece: Piece, start64: i32, to64: i32) -> String {
-
-	let mut en_passant = "-".to_string();
-
-	match piece.piece_type {
-		PieceType::Pawn => {
-			let moved_two_squares = (start64 - to64).abs() == 16;
-
-			if moved_two_squares {
-				let rank = (((start64 % 8)) as u8 + b'a') as char;
-
-				en_passant = match piece.color {
-					Color::White => format!("{}3", rank),
-					Color::Black => format!("{}6", rank),
-				}
-			}
-
-			en_passant
-		},
-		_ => en_passant
-	}
-}

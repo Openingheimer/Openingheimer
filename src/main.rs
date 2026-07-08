@@ -11,6 +11,7 @@ use slint::PhysicalSize;
 use slint::Model;
 use crate::fen_master::*;
 use crate::grand_master::*;
+use crate::model::MoveResult;
 use i_slint_backend_winit::WinitWindowAccessor;
 
 slint::include_modules!();
@@ -39,38 +40,45 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
 
-        let (success, new_position, player_color, san_move) = try_make_move(fen, origin, destination);
+        let move_result = try_make_move(fen, origin, destination);
 
-		if success {
+		if move_result.success {
             let handle = ui_handle.unwrap();
 
-            handle.set_fen(new_position);
-            handle.set_player_color(player_color.clone());
+            let moves = update_move_list(&handle, move_result.clone());
 
-
-            let moves = handle.get_moves();
-
-            let mut move_list: Vec<Moves> = moves.iter().collect();
-
-            match player_color.as_str() {
-                "b" => move_list.push(Moves {
-                    white: san_move.into(),
-                    black: "".into()
-                }),
-                _ =>  if let Some(last_move) = move_list.last_mut() {
-                        last_move.black = san_move.into();
-                    }
-            }
-
-            handle.set_moves(Rc::new(slint::VecModel::from(move_list)).into());
+            handle.set_fen(move_result.fenboard.to_fen());
+            handle.set_player_color(move_result.fenboard.active_color.as_str().into());
+            handle.set_moves(Rc::new(slint::VecModel::from(moves)).into());
         }
 
-        return success;
+        move_result.success
     });
 
     ui.run()?;
 
     Ok(())
+}
+
+fn update_move_list(ui: &AppWindow, move_result: MoveResult) -> Vec<Moves> {
+
+    let ui_handle = ui.as_weak();
+    let handle = ui_handle.unwrap();
+    let moves = handle.get_moves();
+
+    let mut moves: Vec<Moves> = moves.iter().collect();
+
+    match move_result.fenboard.active_color.as_str() {
+        "b" => moves.push(Moves {
+            white: move_result.fenboard.san_move.clone().into(),
+            black: "".into()
+        }),
+        _ =>  if let Some(last_move) = moves.last_mut() {
+                last_move.black = move_result.fenboard.san_move.clone().into();
+            }
+    }
+
+    moves
 }
 
 fn set_screen_size(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
