@@ -35,86 +35,83 @@ export component Chessboard {
     pure callback make_move(string, string, string) -> bool;
     pure callback color_on_square(string, string) -> string;
 
-    VerticalLayout {
+    board := GridLayout {
 
-        board := GridLayout {
+        for rank[r] in ranks: Row {
+            for file[f] in files: Rectangle {
 
-            for rank[r] in ranks: Row {
-                for file[f] in files: Rectangle {
+                property <BoardSquare> board_square: create_bs();
 
-                    property <BoardSquare> board_square: create_bs();
-
-                    board_square_image := Image {
-                        width: cellSize;
-                        height: cellSize;
-                        source: board_square.image;
-                        visible: board_square.has_piece &&
-                            (board_square.coords == active_coords && root.is_grabbing_piece) == false;
-                    }
-
+                board_square_image := Image {
                     width: cellSize;
                     height: cellSize;
-                    background: active_coords == board_square.coords && board_square.has_piece
-                        ? board_square.square_color.mix(hightlight, 0.5)
-                        : board_square.square_color;
+                    source: board_square.image;
+                    visible: board_square.has_piece &&
+                        (board_square.coords == active_coords && root.is_grabbing_piece) == false;
+                }
 
-                    TouchArea {
-                        moved => {
-                            dropped_piece_coords = get_hovered_square(self.mouse-x, self.mouse-y, f, r);
+                width: cellSize;
+                height: cellSize;
+                background: active_coords == board_square.coords && board_square.has_piece
+                    ? board_square.square_color.mix(hightlight, 0.5)
+                    : board_square.square_color;
 
-                            grab_piece(board_square, self.mouse-x, self.mouse-y, f, r)
-                        }
-                        pointer-event(event) => {
-                            if (event.kind == PointerEventKind.down) {
-                                if (event.button == PointerEventButton.right) {
-                                    drop_piece();
-                                }
-                                else {
-                                    pointer_down(board_square, self.mouse-x, self.mouse-y);
-                                }
-                            }
-                            else if (event.kind == PointerEventKind.up) {
-                                pointer_up(board_square);
-                            }
-                        };
+                TouchArea {
+                    moved => {
+                        dropped_piece_coords = get_hovered_square(self.mouse-x, self.mouse-y, f, r);
+
+                        grab_piece(board_square, self.mouse-x, self.mouse-y, f, r)
                     }
-
-                    function pointer_down(bs: BoardSquare, mousex: length, mousey: length) {
-
-                        if (making_move(bs)) {
-                            let made_move = make_move(fen, active_coords, bs.coords);
-
-                            if made_move == false && bs.piece_color != player_color {
-                                grab_piece(bs, mousex, mousey, f, r)
+                    pointer-event(event) => {
+                        if (event.kind == PointerEventKind.down) {
+                            if (event.button == PointerEventButton.right) {
+                                drop_piece();
+                            }
+                            else {
+                                pointer_down(board_square, self.mouse-x, self.mouse-y);
                             }
                         }
-                        else {
-                            grab_piece(bs, mousex, mousey, f, r);
+                        else if (event.kind == PointerEventKind.up) {
+                            pointer_up(board_square);
                         }
+                    };
+                }
 
-                        active_coords = bs.coords;
-                    }
+                function pointer_down(bs: BoardSquare, mousex: length, mousey: length) {
 
-                    function pointer_up(bs: BoardSquare) {
+                    if (making_move(bs)) {
+                        let made_move = make_move(fen, active_coords, bs.coords);
 
-                        if (releasing_grabbed_piece(bs)) {
-                            move_piece();
+                        if made_move == false && bs.piece_color != player_color {
+                            grab_piece(bs, mousex, mousey, f, r)
                         }
-                        root.dropped_piece_coords = "";
-                        root.is_grabbing_piece = false;
+                    }
+                    else {
+                        grab_piece(bs, mousex, mousey, f, r);
                     }
 
-                    function create_bs() -> BoardSquare {
-                        let fen_code = piece_from_fen(fen, f + (r * 8));
+                    active_coords = bs.coords;
+                }
 
-                        return {
-                            coords: file + rank,
-                            piece_color: color_on_square(fen, file + rank),
-                            square_color: mod(f + r, 2) == 0 ? light : dark,
-                            image: get_image(fen_code),
-                            has_piece: fen_code != "."
-                        };
+                function pointer_up(bs: BoardSquare) {
+
+                    if (releasing_grabbed_piece(bs)) {
+                        move_piece();
                     }
+                    root.dropped_piece_coords = "";
+                    root.is_grabbing_piece = false;
+                }
+
+                function create_bs() -> BoardSquare {
+                    let fen_code = piece_from_fen(fen, f + (r * 8));
+
+                    return {
+                        coords: file + rank,
+                        piece_color: color_on_square(fen, file + rank),
+                        square_color: mod(f + r, 2) == 0 ? light : dark,
+                        image: get_image(fen_code),
+                        has_piece: fen_code != "."
+                    };
                 }
             }
         }

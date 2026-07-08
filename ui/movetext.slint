@@ -1,0 +1,70 @@
+
+import {
+    ListView,
+    VerticalBox,
+    HorizontalBox,
+    ScrollView,
+} from "std-widgets.slint";
+
+export component MoveText {
+    width: 400px;
+    height: 400px;
+
+    property <length> font_size: 16px;
+    property <color> light: #454441;
+    property <color> dark: #41403D;
+
+    in property <[{ white: string, black: string }]> moves: [
+        { white: "Nc3", black: "Nc3" },
+        { white: "d5", black: "exd5" },
+        { white: "Rh6", black: "Rhd6" },
+        { white: "exd4", black: "d4" },
+        { white: "Nc3", black: "Nc3" },
+        { white: "", black: "exd5" },
+        { white: "Rh6", black: "Rhd6" },
+        { white: "exd4", black: "5" },
+    ];
+
+    Rectangle {
+        background: #41403D;
+
+        ScrollView {
+            VerticalLayout {
+
+                for move[i] in moves: HorizontalLayout {
+
+                    property <color> bg: mod(i, 2) == 0 ? dark : light;
+
+                    height: 40px;
+                    Rectangle {
+                        width: 60px;
+                        background: bg;
+                        Text {
+                            x: 10px;
+                            text: i + 1 + ".";
+                            font-size: font_size;
+                        }
+                    }
+
+                    Rectangle {
+                        background: bg;
+                        Text {
+                            width: 100%;
+                            text: move.white;
+                            font-size: font_size;
+                        }
+                    }
+
+                    Rectangle {
+                        background: bg;
+                        Text {
+                            width: 100%;
+                            text: move.black;
+                            font-size: font_size;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
