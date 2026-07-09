@@ -4,6 +4,72 @@ use crate::grand_master::*;
 use crate::fen_master::*;
 use slint::SharedString;
 
+pub trait PieceBrain {
+    #[allow(dead_code)]
+    fn as_value(&self) -> i32;
+	fn as_fen(&self) -> char;
+	fn is_legal_move(&self, fenboard: FenBoard) -> MoveResult;
+    fn get_moves(&self, fen: SharedString, from64: i32) -> Vec<SharedString>;
+}
+
+impl PieceBrain for Piece {
+
+	fn is_legal_move(&self, fenboard: FenBoard) -> MoveResult {
+
+        match self.piece_type {
+            PieceType::Pawn => try_pawn_move(self.clone(), fenboard.clone()),
+            // PieceType::Bishop => 'b',
+            PieceType::Knight => try_knight_move(fenboard.clone()),
+            PieceType::Rook => try_rook_move(fenboard.clone()),
+            // PieceType::Queen => 'q',
+            // PieceType::King => 'k',
+			_ => MoveResult {
+                success: false,
+                fenboard: fenboard,
+            }
+        }
+    }
+
+    fn get_moves(&self, fen: SharedString, from64: i32) -> Vec<SharedString>{
+
+        match self.piece_type {
+            // PieceType::Bishop => 'b',
+             PieceType::Knight => get_knight_moves(from64),
+             PieceType::Rook => get_rook_moves(fen, from64),
+            // PieceType::Queen => 'q',
+            // PieceType::King => 'k',
+			_ => [].to_vec()
+        }
+    }
+
+    fn as_value(&self) -> i32 {
+        match self.piece_type {
+            PieceType::Pawn => 1,
+            PieceType::Bishop => 3,
+            PieceType::Knight => 3,
+            PieceType::Rook => 5,
+            PieceType::Queen => 10,
+            PieceType::King => 0,
+        }
+    }
+
+	fn as_fen(&self) -> char {
+        let piece = match self.piece_type {
+            PieceType::Pawn => 'p',
+            PieceType::Bishop => 'b',
+            PieceType::Knight => 'n',
+            PieceType::Rook => 'r',
+            PieceType::Queen => 'q',
+            PieceType::King => 'k',
+        };
+
+		match self.color {
+			Color::White => piece.to_ascii_uppercase(),
+			_ => piece,
+		}
+    }
+}
+
 #[derive(Clone)]
 pub struct FenBoard {
 	pub piece_placement: SharedString,
@@ -54,6 +120,19 @@ pub enum PieceType {
 }
 
 #[derive(Clone)]
+#[derive(Default)]
+pub struct MovePath {
+	pub north: Vec<i32>,
+	pub south: Vec<i32>,
+	pub east: Vec<i32>,
+	pub west: Vec<i32>,
+	pub ne: Vec<i32>,
+	pub nw: Vec<i32>,
+	pub se: Vec<i32>,
+	pub sw: Vec<i32>,
+}
+
+#[derive(Clone)]
 #[derive(PartialEq)]
 pub enum MoveType {
     Normal,
@@ -91,58 +170,5 @@ pub struct MoveResult {
 pub struct Piece {
 	pub piece_type: PieceType,
 	pub color: Color,
-}
-
-pub trait PieceBrain {
-    #[allow(dead_code)]
-    fn as_value(&self) -> i32;
-	fn as_fen(&self) -> char;
-	fn is_legal_move(&self, fenboard: FenBoard) -> MoveResult;
-}
-
-impl PieceBrain for Piece {
-
-	fn is_legal_move(&self, fenboard: FenBoard) -> MoveResult {
-
-        match self.piece_type {
-            PieceType::Pawn => try_pawn_move(self.clone(), fenboard.clone()),
-            // PieceType::Bishop => 'b',
-            // PieceType::Knight => 'n',
-            // PieceType::Rook => 'r',
-            // PieceType::Queen => 'q',
-            // PieceType::King => 'k',
-			_ => MoveResult {
-                success: false,
-                fenboard: fenboard,
-            }
-        }
-    }
-
-    fn as_value(&self) -> i32 {
-        match self.piece_type {
-            PieceType::Pawn => 1,
-            PieceType::Bishop => 3,
-            PieceType::Knight => 3,
-            PieceType::Rook => 5,
-            PieceType::Queen => 10,
-            PieceType::King => 0,
-        }
-    }
-
-	fn as_fen(&self) -> char {
-        let piece = match self.piece_type {
-            PieceType::Pawn => 'p',
-            PieceType::Bishop => 'b',
-            PieceType::Knight => 'n',
-            PieceType::Rook => 'r',
-            PieceType::Queen => 'q',
-            PieceType::King => 'k',
-        };
-
-		match self.color {
-			Color::White => piece.to_ascii_uppercase(),
-			_ => piece,
-		}
-    }
 }
 

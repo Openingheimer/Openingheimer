@@ -16,7 +16,7 @@ export component MoveText {
     property <color> light: #454441;
     property <color> dark: #41403D;
 
-    in property <[Moves]> moves;
+    in property <[Moves]> move_list;
 
     Rectangle {
         background: #41403D;
@@ -24,7 +24,7 @@ export component MoveText {
         ScrollView {
             VerticalLayout {
 
-                for move[i] in moves: HorizontalLayout {
+                for move[i] in move_list: HorizontalLayout {
 
                     property <color> bg: mod(i, 2) == 0 ? dark : light;
 

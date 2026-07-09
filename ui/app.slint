@@ -6,16 +6,21 @@ export global Callbacks {
     pure callback piece_from_fen(string, int) -> string;
     pure callback make_move(string, string, string) -> bool;
     pure callback color_on_square(string, string) -> string;
+    pure callback check_legal_move(string) -> bool;
+    pure callback refresh_legal_moves(string, string, bool);
 }
 
 export component AppWindow inherits Window {
     title: "Openingheimer";
-    full-screen: false;
+    full-screen: is_full_screen;
 
-    //start fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    in-out property <string> fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    //in-out property <string> fen:"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    //in-out property <string> fen: "NNNNNN2/N3NN1N/2NN4/n1n1nN1N/7n/n1n1n2k/8/K3n1nn w - - 0 1";
+    in-out property <string> fen: "1r1R2kr/rR2R3/1r3r2/3R2Rr/2r2R2/KR5r/8/Rr1r1R1r w - - 0 1";
     in-out property <string> player_color;
-    in-out property <[Moves]> moves;
+    in-out property <[Moves]> move_list;
+    in-out property <[string]> legal_moves;
+    in-out property <bool> is_full_screen: false;
 
     HorizontalBox {
         alignment: center;
@@ -24,13 +29,16 @@ export component AppWindow inherits Window {
         Chessboard {
             fen: root.fen;
             player_color: root.player_color;
+            legal_moves: root.legal_moves;
             piece_from_fen(f, i) => Callbacks.piece_from_fen(f, i);
             make_move(fen, start_square, end_square) => Callbacks.make_move(fen, start_square, end_square);
             color_on_square(f, square) => Callbacks.color_on_square(f, square);
+            check_legal_move(square) => Callbacks.check_legal_move(square);
+            refresh_legal_moves(fen, square, clear) => Callbacks.refresh_legal_moves(fen, square, clear);
         }
 
         MoveText {
-            moves: root.moves;
+            move_list: root.move_list;
         }
     }
 }

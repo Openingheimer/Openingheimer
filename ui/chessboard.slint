@@ -5,6 +5,7 @@ export struct BoardSquare {
     square_color: color,
     image: image,
     has_piece: bool,
+    legal_move: bool,
 }
 
 export component Chessboard {
@@ -17,6 +18,9 @@ export component Chessboard {
     in-out property <string> fen;
     in-out property <string> player_color;
     in-out property <bool> boardFlipped: false;
+
+    property <bool> debug_legal_moves: true;
+    in-out property <[string]> legal_moves;
 
     property <length> boardpx: BOARD_SIZE * 1px;
     property <length> cellSize: (boardpx / 8);
@@ -36,13 +40,36 @@ export component Chessboard {
     pure callback piece_from_fen(string, int) -> string;
     pure callback make_move(string, string, string) -> bool;
     pure callback color_on_square(string, string) -> string;
+    pure callback check_legal_move(string) -> bool;
+    pure callback refresh_legal_moves(string, string, bool);
 
     board := GridLayout {
 
         for rank[r] in ranks: Row {
             for file[f] in files: Rectangle {
 
+                Text {
+                    //width: 100%;
+                    color: black;
+                    text: f + (r * 8);
+                    font-size: 18px;
+                }
+
                 property <BoardSquare> board_square: create_bs();
+
+                function create_bs() -> BoardSquare {
+                    let fen_code = piece_from_fen(fen, f + (r * 8));
+                    let coords = file + rank;
+
+                    return {
+                        coords: coords,
+                        piece_color: color_on_square(fen, coords),
+                        square_color: mod(f + r, 2) == 0 ? light : dark,
+                        image: get_image(fen_code),
+                        has_piece: fen_code != ".",
+                        legal_move: check_legal_move(coords),
+                    };
+                }
 
                 board_square_image := Image {
                     width: cellSize;
@@ -54,7 +81,8 @@ export component Chessboard {
 
                 width: cellSize;
                 height: cellSize;
-                background: active_coords == board_square.coords && board_square.has_piece
+                background: debugging_legal_moves() ? green :
+                    active_coords == board_square.coords && board_square.has_piece
                     ? board_square.square_color.mix(hightlight, 0.5)
                     : board_square.square_color;
 
@@ -88,11 +116,10 @@ export component Chessboard {
                             grab_piece(bs, mousex, mousey, f, r)
                         }
                     }
-                    else {
-                        grab_piece(bs, mousex, mousey, f, r);
-                    }
-
                     active_coords = bs.coords;
+                    grab_piece(bs, mousex, mousey, f, r);
+
+                    display_legal_moves();
                 }
 
                 function pointer_up(bs: BoardSquare) {
@@ -100,20 +127,11 @@ export component Chessboard {
                     if (releasing_grabbed_piece(bs)) {
                         move_piece();
                     }
-                    root.dropped_piece_coords = "";
-                    root.is_grabbing_piece = false;
+                    soft_drop_piece();
                 }
 
-                function create_bs() -> BoardSquare {
-                    let fen_code = piece_from_fen(fen, f + (r * 8));
-
-                    return {
-                        coords: file + rank,
-                        piece_color: color_on_square(fen, file + rank),
-                        square_color: mod(f + r, 2) == 0 ? light : dark,
-                        image: get_image(fen_code),
-                        has_piece: fen_code != "."
-                    };
+                function debugging_legal_moves() -> bool {
+                    debug_legal_moves && board_square.legal_move
                 }
             }
         }
@@ -130,9 +148,12 @@ export component Chessboard {
     }
 
     function releasing_grabbed_piece(bs: BoardSquare) -> bool {
-        root.is_grabbing_piece &&
+        let dropping_piece = root.is_grabbing_piece &&
             root.dropped_piece_coords != "" &&
-            root.dropped_piece_coords != bs.coords
+            root.dropped_piece_coords != bs.coords;
+
+        clear_legal_moves();
+        dropping_piece
     }
 
     function grab_piece(bs: BoardSquare, mousex: length, mousey: length, file: int, rank: int) {
@@ -166,8 +187,14 @@ export component Chessboard {
     function drop_piece() {
         root.piece_in_hand_color = "";
         root.active_coords = "";
-        root.is_grabbing_piece = false;
+        soft_drop_piece();
+
+        clear_legal_moves();
+    }
+
+    function soft_drop_piece() {
         root.dropped_piece_coords = "";
+        root.is_grabbing_piece = false;
     }
 
     function get_hovered_square(mousex: length, mousey: length, file: int, rank: int) -> string {
@@ -209,6 +236,18 @@ export component Chessboard {
         off_board_y = false;
 
         { x: x, y: y }
+    }
+
+    function display_legal_moves() {
+        if debug_legal_moves {
+            refresh_legal_moves(fen, active_coords, false);
+        }
+    }
+
+    function clear_legal_moves() {
+        if debug_legal_moves {
+            refresh_legal_moves(fen, active_coords, true);
+        }
     }
 
     function our_piece() -> bool {

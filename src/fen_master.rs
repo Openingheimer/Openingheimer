@@ -47,6 +47,13 @@ use slint::{SharedString, ToSharedString};
 	}
 }
 
+pub fn to_fen64(fen: SharedString) -> SharedString {
+	let fen_fields : Vec<&str> = fen.split(' ').collect();
+	let piece_placement = pad_empty_squares(fen_fields[0].to_string());
+
+	piece_placement.replace("/", "").into()
+}
+
 pub fn apply_move(mut move_result: MoveResult) -> MoveResult {
 
     update_piece_placement(&mut move_result.fenboard);
@@ -151,7 +158,14 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 	}
 }
 
- pub fn get_piece_code_from_fen(fen: String, cell_index: i32) -> String {
+ pub fn get_piece_from_fen(fen: SharedString, square: SharedString) -> Option<Piece> {
+
+     let piece_code = get_piece_code_from_fen(fen, square_to_index64(square));
+
+	 get_piece_from_fen_code(piece_code.chars().next().unwrap())
+}
+
+ pub fn get_piece_code_from_fen(fen: SharedString, cell_index: i32) -> SharedString {
 
     let piece_placement = fen.split(' ').next().unwrap();
     let mut ranks = piece_placement.split('/');
@@ -206,6 +220,13 @@ pub fn get_piece_color_from_square(fen: SharedString, square: SharedString) -> S
     }
 }
 
+pub fn get_color_from_square(fen: SharedString, square: SharedString) -> Color {
+	match get_piece_color_from_square(fen, square).as_str() {
+		"w" => Color::White,
+		_ => Color::Black
+	}
+}
+
 pub fn square_to_index64(square: SharedString) -> i32 {
 
 	let chars: Vec<char> = square.to_lowercase().chars().collect();
@@ -214,6 +235,16 @@ pub fn square_to_index64(square: SharedString) -> i32 {
 	let rank = chars[1].to_digit(10).unwrap() as i32;
 
 	((8 - rank) * 8) + file
+}
+
+pub fn index64_to_square(index: i32) -> SharedString {
+
+    let file = index % 8;
+    let rank = 8 - (index / 8);
+
+    let file_char = (b'a' + file as u8) as char;
+
+    format!("{}{}", file_char, rank).into()
 }
 
 fn offset_slashes(index: i32) -> usize {
