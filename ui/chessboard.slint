@@ -30,6 +30,8 @@ export component Chessboard {
     property <string> piece_in_hand_color;
     property <string> dropped_piece_coords;
     property <bool> is_grabbing_piece;
+    property <bool> off_board_x;
+    property <bool> off_board_y;
 
     pure callback piece_from_fen(string, int) -> string;
     pure callback make_move(string, string, string) -> bool;
@@ -183,7 +185,30 @@ export component Chessboard {
         let bx = x + (f * cellSize);
         let by = y + (r * cellSize);
 
-        { x: bx, y: by };
+        dropped_off_board_hack(bx, by)
+    }
+
+    //fix crashes when grabbed piece is dropped off the board
+    function dropped_off_board_hack(bx: length, by: length) -> Point {
+
+        let off_left = bx < 0;
+        let off_right = bx > BOARD_SIZE * 1px;
+        let off_high = by < 0;
+        let off_low = by > BOARD_SIZE * 1px;
+
+        if (off_left || off_right) {
+            off_board_x = true;
+        }
+        if (off_high || off_low) {
+            off_board_y = true;
+        }
+        let x = off_board_x == false ? bx : off-left ? 0 : (BOARD_SIZE - 1) * 1px;
+        let y = off_board_y == false ? by : off-high ? 0 : (BOARD_SIZE - 1) * 1px;
+
+        off_board_x = false;
+        off_board_y = false;
+
+        { x: x, y: y }
     }
 
     function our_piece() -> bool {
