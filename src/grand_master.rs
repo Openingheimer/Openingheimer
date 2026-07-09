@@ -46,8 +46,16 @@ pub fn try_pawn_move(pawn: Piece, mut fenboard: FenBoard) -> MoveResult {
 
 	let (pawn_capture, en_passant) = is_pawn_capture(pawn.clone(), fenboard.clone());
 	let legal_move = pawn_capture || is_marching_forward(pawn.clone(), fenboard.clone());
+	let promoted = is_promotion(fenboard.to64, fenboard.active_color.clone());
 
 	fenboard.en_passant_capture = en_passant;
+
+	fenboard.move_type = match pawn_capture {
+		true if promoted => MoveType::CapturePromotion,
+		false if promoted => MoveType::Promotion,
+		true => MoveType::Capture,
+		false => MoveType::Normal,
+	};
 
 	MoveResult { success: legal_move, fenboard: fenboard}
 }
@@ -105,6 +113,15 @@ fn is_pawn_capture(pawn: Piece, fenboard: FenBoard) -> (bool, bool) {
 		}
 		_ => (false, false),
 	}
+}
+
+fn is_promotion(to64: i32, color:Color) -> bool {
+
+	match color {
+		Color::White => to64 < 8,
+		Color::Black => to64 > 55,
+	}
+
 }
 
 fn forwards_movement(color: Color, from64: i32, to64: i32) -> bool {

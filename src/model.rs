@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::grand_master::*;
 use crate::fen_master::*;
 use slint::SharedString;
@@ -18,6 +20,9 @@ pub struct FenBoard {
     pub from64: i32,
     pub to64: i32,
     pub en_passant_capture: bool,
+    pub from_coords: SharedString,
+    pub to_coords: SharedString,
+    pub move_type: MoveType,
     pub san_move: SharedString,
 }
 
@@ -46,6 +51,16 @@ pub enum PieceType {
 	Rook,
 	Queen,
 	King
+}
+
+#[derive(Clone)]
+#[derive(PartialEq)]
+pub enum MoveType {
+    Normal,
+    Capture,
+    Castle,
+    Promotion,
+    CapturePromotion
 }
 
 #[derive(PartialEq)]

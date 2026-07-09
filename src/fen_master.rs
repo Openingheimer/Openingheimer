@@ -1,6 +1,6 @@
 use crate::model::*;
 use std::iter::repeat;
-use slint::SharedString;
+use slint::{SharedString, ToSharedString};
 
  pub fn to_fenboard(fen: SharedString, from_coords: SharedString, to_coords: SharedString) -> FenBoard {
 
@@ -39,67 +39,69 @@ use slint::SharedString;
 		to_fen71: to_fen_index,
 		from64: from64,
 		to64: to64,
-		san_move: to_coords.into(),
 		en_passant_capture: false,
+		from_coords: from_coords,
+		to_coords: to_coords,
+		move_type: MoveType::Normal,
+		san_move: "".into(),
 	}
 }
 
 pub fn apply_move(mut move_result: MoveResult) -> MoveResult {
 
-    update_piece_placement(&mut move_result);
-    update_ply(&mut move_result);
-    update_en_passant(&mut move_result);
+    update_piece_placement(&mut move_result.fenboard);
+    update_ply(&mut move_result.fenboard);
+    update_en_passant(&mut move_result.fenboard);
+    update_san_move(&mut move_result.fenboard);
 
-    move_result.success = true;
     move_result
 }
 
-fn update_piece_placement(move_result: &mut MoveResult) {
+fn update_piece_placement(fenboard: &mut FenBoard) {
 
-    let from_piece = move_result.fenboard.from_piece.as_ref().unwrap();
+    let from_piece = fenboard.from_piece.as_ref().unwrap();
 
-    let mut piece_placement: Vec<char> = move_result.fenboard.piece_placement.chars().collect();
+    let mut piece_placement: Vec<char> = fenboard.piece_placement.chars().collect();
 
-    piece_placement[move_result.fenboard.to_fen71] = from_piece.as_fen();
-    piece_placement[move_result.fenboard.from_fen71] = '.';
+    piece_placement[fenboard.to_fen71] = from_piece.as_fen();
+    piece_placement[fenboard.from_fen71] = '.';
 
-    if move_result.fenboard.en_passant_capture {
-        let capture_offset = match move_result.fenboard.active_color {
+    if fenboard.en_passant_capture {
+        let capture_offset = match fenboard.active_color {
             Color::White => 8,
             Color::Black => -8,
         };
 
         let captured_pawn = offset_slashes(
-            square_to_index64(move_result.fenboard.en_passant.clone()) + capture_offset
+            square_to_index64(fenboard.en_passant.clone()) + capture_offset
         );
 
         piece_placement[captured_pawn] = '.';
     }
 
-    move_result.fenboard.piece_placement = piece_placement.into_iter().collect::<String>().into();
+    fenboard.piece_placement = piece_placement.into_iter().collect::<String>().into();
 }
 
-fn update_ply(move_result: &mut MoveResult) {
-    match move_result.fenboard.active_color {
+fn update_ply(fenboard: &mut FenBoard) {
+    match fenboard.active_color {
         Color::White => {
-            move_result.fenboard.active_color = Color::Black;
+            fenboard.active_color = Color::Black;
         }
         Color::Black => {
-            move_result.fenboard.full_move_number += 1;
-            move_result.fenboard.active_color = Color::White;
+            fenboard.full_move_number += 1;
+            fenboard.active_color = Color::White;
         }
     }
 }
 
-fn update_en_passant(move_result: &mut MoveResult) {
-
-	let piece = move_result.fenboard.from_piece.as_ref().unwrap().clone();
-    let from64 = move_result.fenboard.from64;
-    let to64 = move_result.fenboard.to64;
+fn update_en_passant(fenboard: &mut FenBoard) {
+    let piece = fenboard.from_piece.as_ref().unwrap().clone();
+    let from64 = fenboard.from64;
+    let to64 = fenboard.to64;
 
 	let mut en_passant = "-".to_string();
 
-	move_result.fenboard.en_passant = match piece.piece_type.clone() {
+	fenboard.en_passant = match piece.piece_type.clone() {
 		PieceType::Pawn => {
 			let moved_two_squares = (from64 - to64).abs() == 16;
 
@@ -117,6 +119,36 @@ fn update_en_passant(move_result: &mut MoveResult) {
 		_ => en_passant.into()
 	}
 
+}
+
+ fn update_san_move(fenboard: &mut FenBoard) {
+	let piece = fenboard.from_piece.as_ref().unwrap();
+    let file = fenboard.from_coords.chars().nth(0).unwrap();
+
+	let san: SharedString = match piece.piece_type {
+		PieceType::Pawn if
+			fenboard.move_type == MoveType::Capture ||
+			fenboard.move_type == MoveType::CapturePromotion => file.to_shared_string(),
+	    PieceType::Pawn => SharedString::new(),
+	    _  => piece.as_fen().to_ascii_uppercase().to_shared_string(),
+	};
+
+	let to_square = match fenboard.move_type {
+		MoveType::Normal => fenboard.to_coords.clone(),
+		MoveType::Capture => "x".to_shared_string() + &fenboard.to_coords,
+		MoveType::Castle => match &fenboard.to64 {
+			2 | 58 => "O-O-O".to_shared_string(),
+			6 | 62 => "O-O".to_shared_string(),
+			_ => panic!("Illegal Castle")
+		},
+		MoveType::Promotion => fenboard.to_coords.to_shared_string() + "=Q",
+		MoveType::CapturePromotion => "x".to_shared_string() + &fenboard.to_coords + "=Q",
+	};
+
+	fenboard.san_move = match fenboard.move_type {
+		MoveType::Castle => to_square,
+		_ => san + &to_square
+	}
 }
 
  pub fn get_piece_code_from_fen(fen: String, cell_index: i32) -> String {
