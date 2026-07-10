@@ -115,8 +115,10 @@ export component Chessboard {
                             grab_piece(bs, mousex, mousey, f, r)
                         }
                     }
+                    else {
+                        grab_piece(bs, mousex, mousey, f, r);
+                    }
                     active_coords = bs.coords;
-                    grab_piece(bs, mousex, mousey, f, r);
 
                     display_legal_moves();
                 }
