@@ -34,7 +34,10 @@ impl PieceBrain for Piece {
 
         match self.piece_type {
             // PieceType::Bishop => 'b',
-             PieceType::Knight => get_knight_moves(from64),
+             PieceType::Knight => get_knight_moves(from64)
+                                    .iter()
+                                	.map(|x| index64_to_square(*x))
+                                	.collect(),
              PieceType::Rook => get_rook_moves(fen, from64),
             // PieceType::Queen => 'q',
             // PieceType::King => 'k',
