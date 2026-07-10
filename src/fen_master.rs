@@ -60,6 +60,7 @@ pub fn apply_move(mut move_result: MoveResult) -> MoveResult {
     update_piece_placement(&mut move_result.fenboard);
     update_ply(&mut move_result.fenboard);
     update_en_passant(&mut move_result.fenboard);
+    update_move_type(&mut move_result.fenboard);
     update_san_move(&mut move_result.fenboard);
 
     move_result
@@ -128,6 +129,19 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 		_ => en_passant.into()
 	}
 
+}
+
+ fn update_move_type(fenboard: &mut FenBoard) {
+
+   let from_piece = fenboard.from_piece.clone();
+   let to_piece = fenboard.to_piece.clone();
+   let current_move_type = fenboard.move_type.clone();
+
+	fenboard.move_type = match (from_piece, to_piece) {
+		(Some(f), _) if f.piece_type == PieceType::Pawn => current_move_type,
+		(Some(f), Some(t)) if f.color != t.color => MoveType::Capture,
+		_ => current_move_type
+	};
 }
 
  fn update_san_move(fenboard: &mut FenBoard) {

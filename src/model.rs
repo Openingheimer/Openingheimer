@@ -110,6 +110,7 @@ impl FenBoard {
 }
 
 #[derive(Clone)]
+#[derive(PartialEq)]
 pub enum PieceType {
 	Pawn,
 	Bishop,
