@@ -43,6 +43,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
 
+        if origin == "" || destination == "" {
+            return false;
+        }
+
         let move_result = try_make_move(fen, origin, destination);
 
 		if move_result.success {
@@ -60,6 +64,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let is_legal_weak = ui_handle.clone();
     ui.global::<Callbacks>().on_check_legal_move(move |square| -> bool {
+
+        if square == "" {
+            return false;
+        }
 
         let handle = is_legal_weak.unwrap();
         let legal_moves = handle.get_legal_moves();
@@ -112,6 +120,7 @@ fn update_move_list(ui: &AppWindow, move_result: MoveResult) -> Vec<Moves> {
 }
 
 fn set_full_screen(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
+
     let ui_weak = ui.as_weak();
     let handle = ui_weak.unwrap();
     handle.set_is_full_screen(true);

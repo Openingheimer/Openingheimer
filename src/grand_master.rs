@@ -214,12 +214,10 @@ fn is_pawn_capture(pawn: Piece, fenboard: FenBoard) -> (bool, bool) {
 }
 
 fn is_promotion(to64: i32, color:Color) -> bool {
-
 	match color {
 		Color::White => to64 < 8,
 		Color::Black => to64 > 55,
 	}
-
 }
 
 fn forwards_movement(color: Color, from64: i32, to64: i32) -> bool {
@@ -253,7 +251,6 @@ fn get_file_rank(from64: i32) -> (i32, i32) {
 }
 
 fn friendly_fire(piece: Piece, destination_piece: Option<Piece>) -> bool {
-
 	if let Some(dp) = destination_piece {
 		if piece.color == dp.color{
 			return true;

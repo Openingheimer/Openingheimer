@@ -48,6 +48,7 @@ use slint::{SharedString, ToSharedString};
 }
 
 pub fn to_fen64(fen: SharedString) -> SharedString {
+
 	let fen_fields : Vec<&str> = fen.split(' ').collect();
 	let piece_placement = pad_empty_squares(fen_fields[0].to_string());
 
@@ -102,6 +103,7 @@ fn update_ply(fenboard: &mut FenBoard) {
 }
 
 fn update_en_passant(fenboard: &mut FenBoard) {
+
     let piece = fenboard.from_piece.as_ref().unwrap().clone();
     let from64 = fenboard.from64;
     let to64 = fenboard.to64;
@@ -129,6 +131,7 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 }
 
  fn update_san_move(fenboard: &mut FenBoard) {
+
 	let piece = fenboard.from_piece.as_ref().unwrap();
     let file = fenboard.from_coords.chars().nth(0).unwrap();
 
