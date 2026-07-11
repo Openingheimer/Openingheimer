@@ -41,64 +41,6 @@ fn can_make_move(fenboard: FenBoard, piece: Piece) -> MoveResult {
 	move_result.clone()
 }
 
-pub fn try_knight_move(fenboard: FenBoard) -> MoveResult {
-
-	let moves: Vec<SharedString> = get_knight_moves(fenboard.from64)
-	.iter()
-	.map(|x| index64_to_square(*x))
-	.collect();
-
-	MoveResult { success: moves.contains(&fenboard.to_coords), fenboard: fenboard }
-}
-
-pub fn get_knight_moves(from64: i32) -> Vec<i32> {
-
-	let octopus_moves : Vec<i32> = vec![6, 10, 17, 15]
-		.iter()
-		.flat_map(|&x| [x, -x])
-		.collect();
-
-	let (file, rank) = get_file_rank(from64);
-
-	let moves: Vec<i32> = match(file, rank) {
-		(_, _) if is_octopus_knight(file, rank) => octopus_moves,
-		(1, 1) => [-6, -15].to_vec(),
-		(8, 8) => [6, 15].to_vec(),
-		(1, 8) => [10, 17].to_vec(),
-		(8, 1) => [-10, -17].to_vec(),
-		(1, 7) => [-6, 10, 17].to_vec(),
-		(1, 2) => [-6, 10, -15,].to_vec(),
-		(8, 2) => [-10, -17, 6].to_vec(),
-		(8, 7) => [-10, 6, 15].to_vec(),
-		(1, _) => [-6, 10, -15, 17].to_vec(),
-		(8, _) => [6, -10, 15, -17].to_vec(),
-		(2, 8) => [10, 15, 17].to_vec(),
-		(7, 8) => [6, 15, 17].to_vec(),
-		(2, 1) => [-6, -15, -17].to_vec(),
-		(7, 1) => [-10, -15, -17].to_vec(),
-		(2, 2) => [-15, -17, -6, 10].to_vec(),
-		(7, 7) => [-10, 6, 15, 17].to_vec(),
-		(2, 7) => [-6, 10, 15, 17].to_vec(),
-		(7, 2) => [6, -10, -15, -17].to_vec(),
-		(2, _) => [-17, -15, -6, 10, 15, 17].to_vec(),
-		(7, _) => [-17, -15, -10, 6, 15, 17 ].to_vec(),
-		(_, 7) => [-10, -6, 6, 10, 15, 17].to_vec(),
-		(_, 2) => [-10, -15, -17, -6, 6, 10].to_vec(),
-		(_, 1) => [-17, -15, -10, -6].to_vec(),
-		(_, 8) => [17, 15, 10, 6].to_vec(),
-		_ => [].to_vec()
-	};
-
-	moves.into_iter()
-	.map(|x| from64 + x)
-	.filter(|&x| x <= 63 && x >= 0)
-	.collect()
-}
-
-fn is_octopus_knight(file: i32, rank: i32) -> bool {
-	(file >= 3 && file <= 6) && (rank <= 6 && rank >= 3)
-}
-
 pub fn try_rook_move(fenboard: FenBoard) -> MoveResult {
 
 	let legal_moves = get_rook_moves(fenboard.to_fen(), fenboard.from64);
@@ -275,6 +217,63 @@ fn get_pawn_path(from64: i32, to64: i32, moving_two: bool, color: Color) -> Vec<
 	}
 
 	path
+}
+
+pub fn try_knight_move(fenboard: FenBoard) -> MoveResult {
+
+	let moves: Vec<SharedString> = get_knight_moves(fenboard.from64)
+	.iter()
+	.map(|x| index64_to_square(*x))
+	.collect();
+
+	MoveResult { success: moves.contains(&fenboard.to_coords), fenboard: fenboard }
+}
+
+pub fn get_knight_moves(from64: i32) -> Vec<i32> {
+
+	let octopus_moves : Vec<i32> = vec![6, 10, 17, 15]
+		.iter()
+		.flat_map(|&x| [x, -x])
+		.collect();
+
+	let (file, rank) = get_file_rank(from64);
+
+	let moves: Vec<i32> = match(file, rank) {
+		(_, _) if is_octopus_knight(file, rank) => octopus_moves,
+		(1, 1) => [-6, -15].to_vec(),
+		(8, 8) => [6, 15].to_vec(),
+		(1, 8) => [10, 17].to_vec(),
+		(8, 1) => [-10, -17].to_vec(),
+		(1, 7) => [-6, 10, 17].to_vec(),
+		(1, 2) => [-6, 10, -15,].to_vec(),
+		(8, 2) => [-10, -17, 6].to_vec(),
+		(8, 7) => [-10, 6, 15].to_vec(),
+		(1, _) => [-6, 10, -15, 17].to_vec(),
+		(8, _) => [6, -10, 15, -17].to_vec(),
+		(2, 8) => [10, 15, 17].to_vec(),
+		(7, 8) => [6, 15, 17].to_vec(),
+		(2, 1) => [-6, -15, -17].to_vec(),
+		(7, 1) => [-10, -15, -17].to_vec(),
+		(2, 2) => [-15, -17, -6, 10].to_vec(),
+		(7, 7) => [-10, 6, 15, 17].to_vec(),
+		(2, 7) => [-6, 10, 15, 17].to_vec(),
+		(7, 2) => [6, -10, -15, -17].to_vec(),
+		(2, _) => [-17, -15, -6, 10, 15, 17].to_vec(),
+		(7, _) => [-17, -15, -10, 6, 15, 17 ].to_vec(),
+		(_, 7) => [-10, -6, 6, 10, 15, 17].to_vec(),
+		(_, 2) => [-10, -15, -17, -6, 6, 10].to_vec(),
+		(_, 1) => [-17, -15, -10, -6].to_vec(),
+		(_, 8) => [17, 15, 10, 6].to_vec(),
+		_ => [].to_vec()
+	};
+
+	moves.into_iter()
+	.map(|x| from64 + x)
+	.collect()
+}
+
+fn is_octopus_knight(file: i32, rank: i32) -> bool {
+	(file >= 3 && file <= 6) && (rank <= 6 && rank >= 3)
 }
 
 fn get_file_rank(from64: i32) -> (i32, i32) {

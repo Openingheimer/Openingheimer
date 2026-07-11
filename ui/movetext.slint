@@ -19,7 +19,7 @@ export component MoveText {
     in property <[Moves]> move_list;
 
     Rectangle {
-        background: #41403D;
+        background: dark;
 
         scroll := ScrollView {
             viewport-y: scroll.height - scroll.viewport-height;
@@ -36,6 +36,7 @@ export component MoveText {
                         background: bg;
                         Text {
                             x: 10px;
+                            width: 100%;
                             text: i + 1 + ".";
                             font-size: font_size;
                         }
@@ -43,6 +44,7 @@ export component MoveText {
 
                     Rectangle {
                         background: bg;
+                        width: 140px;
                         Text {
                             width: 100%;
                             text: move.white;

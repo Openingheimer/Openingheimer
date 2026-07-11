@@ -48,12 +48,6 @@ export component Chessboard {
         for rank[r] in ranks: Row {
             for file[f] in files: Rectangle {
 
-                Text {
-                    color: black;
-                    text: f + (r * 8);
-                    font-size: 18px;
-                }
-
                 property <BoardSquare> board_square: create_bs();
 
                 function create_bs() -> BoardSquare {
@@ -118,8 +112,8 @@ export component Chessboard {
                     else {
                         grab_piece(bs, mousex, mousey, f, r);
                     }
-                    active_coords = bs.coords;
 
+                    active_coords = bs.coords;
                     display_legal_moves();
                 }
 
@@ -149,12 +143,10 @@ export component Chessboard {
     }
 
     function releasing_grabbed_piece(bs: BoardSquare) -> bool {
-        let dropping_piece = root.is_grabbing_piece &&
-            root.dropped_piece_coords != "" &&
-            root.dropped_piece_coords != bs.coords;
-
         clear_legal_moves();
-        dropping_piece
+        root.is_grabbing_piece &&
+            root.dropped_piece_coords != "" &&
+            root.dropped_piece_coords != bs.coords
     }
 
     function grab_piece(bs: BoardSquare, mousex: length, mousey: length, file: int, rank: int) {
