@@ -108,6 +108,52 @@ fn get_diagonal_moves(from64: i32) -> MovePath {
 	}
 }
 
+pub fn try_queen_move(fenboard: FenBoard) -> MoveResult {
+
+	let legal_moves = get_queen_moves(fenboard.to_fen(), fenboard.from64);
+
+	MoveResult { success: legal_moves.contains(&fenboard.to_coords), fenboard: fenboard }
+}
+
+pub fn get_queen_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
+
+	let mut legal_moves = get_rook_moves(fen.clone(), from64);
+
+	legal_moves.extend(get_bishop_moves(fen, from64));
+
+	legal_moves
+}
+
+pub fn try_king_move(fenboard: FenBoard) -> MoveResult {
+
+	let legal_moves = get_king_moves(fenboard.to_fen(), fenboard.from64);
+
+	MoveResult { success: legal_moves.contains(&fenboard.to_coords), fenboard: fenboard }
+}
+
+pub fn get_king_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
+
+	let color = get_color_from_square(fen.clone(), index64_to_square(from64));
+	let straight = get_straight_moves(from64);
+	let diagonal = get_diagonal_moves(from64);
+
+	let king_path = MovePath {
+		north: straight.north.get(0).copied().into_iter().collect(),
+		south: straight.south.get(0).copied().into_iter().collect(),
+		east: straight.east.get(0).copied().into_iter().collect(),
+		west: straight.west.get(0).copied().into_iter().collect(),
+		ne: diagonal.ne.get(0).copied().into_iter().collect(),
+		nw: diagonal.nw.get(0).copied().into_iter().collect(),
+		se: diagonal.se.get(0).copied().into_iter().collect(),
+		sw: diagonal.sw.get(0).copied().into_iter().collect(),
+	};
+
+	get_legal_move_path(king_path, fen, color)
+		.into_iter()
+		.map(|x| index64_to_square(x))
+		.collect()
+}
+
 fn get_legal_move_path(move_path: MovePath, fen: SharedString, color: Color) -> Vec<i32> {
 
 	let north = get_legal_path(&move_path.north, &fen, &color);
@@ -258,15 +304,12 @@ fn get_pawn_path(from64: i32, to64: i32, moving_two: bool, color: Color) -> Vec<
 
 pub fn try_knight_move(fenboard: FenBoard) -> MoveResult {
 
-	let moves: Vec<SharedString> = get_knight_moves(fenboard.from64)
-	.iter()
-	.map(|x| index64_to_square(*x))
-	.collect();
+	let moves: Vec<SharedString> = get_knight_moves(fenboard.from64);
 
 	MoveResult { success: moves.contains(&fenboard.to_coords), fenboard: fenboard }
 }
 
-pub fn get_knight_moves(from64: i32) -> Vec<i32> {
+pub fn get_knight_moves(from64: i32) -> Vec<SharedString> {
 
 	let octopus_moves : Vec<i32> = vec![6, 10, 17, 15]
 		.iter()
@@ -305,7 +348,7 @@ pub fn get_knight_moves(from64: i32) -> Vec<i32> {
 	};
 
 	moves.into_iter()
-	.map(|x| from64 + x)
+	.map(|x| index64_to_square(from64 + x))
 	.collect()
 }
 
