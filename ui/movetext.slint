@@ -21,7 +21,9 @@ export component MoveText {
     Rectangle {
         background: #41403D;
 
-        ScrollView {
+        scroll := ScrollView {
+            viewport-y: scroll.height - scroll.viewport-height;
+
             VerticalLayout {
 
                 for move[i] in move_list: HorizontalLayout {
