@@ -18,7 +18,7 @@ impl PieceBrain for Piece {
 
         match self.piece_type {
             PieceType::Pawn => try_pawn_move(self.clone(), fenboard.clone()),
-            // PieceType::Bishop => 'b',
+            PieceType::Bishop => try_bishop_move(fenboard.clone()),
             PieceType::Knight => try_knight_move(fenboard.clone()),
             PieceType::Rook => try_rook_move(fenboard.clone()),
             // PieceType::Queen => 'q',
@@ -33,7 +33,7 @@ impl PieceBrain for Piece {
     fn get_moves(&self, fen: SharedString, from64: i32) -> Vec<SharedString>{
 
         match self.piece_type {
-            // PieceType::Bishop => 'b',
+             PieceType::Bishop => get_bishop_moves(fen, from64),
              PieceType::Knight => get_knight_moves(from64)
                                     .iter()
                                 	.map(|x| index64_to_square(*x))

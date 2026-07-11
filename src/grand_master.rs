@@ -49,6 +49,7 @@ pub fn try_rook_move(fenboard: FenBoard) -> MoveResult {
 }
 
 pub fn get_rook_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
+
 	let color = get_color_from_square(fen.clone(), index64_to_square(from64));
 	let move_path = get_straight_moves(from64);
 
@@ -67,6 +68,42 @@ fn get_straight_moves(from64: i32) -> MovePath {
 		east: (1..=8 - file).map(|f| from64 + f).collect(),
 		north:  (1..=(8 - rank)).map(|r| from64 - (r * 8)).collect(),
 		south:  (1..rank).map(|r| from64 + (r * 8)).collect(),
+		..Default::default()
+	}
+}
+
+pub fn try_bishop_move(fenboard: FenBoard) -> MoveResult {
+
+	let legal_moves = get_bishop_moves(fenboard.to_fen(), fenboard.from64);
+
+	MoveResult { success: legal_moves.contains(&fenboard.to_coords), fenboard: fenboard }
+}
+
+pub fn get_bishop_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
+
+	let color = get_color_from_square(fen.clone(), index64_to_square(from64));
+	let move_path = get_diagonal_moves(from64);
+
+	get_legal_move_path(move_path, fen, color)
+		.into_iter()
+		.map(|x| index64_to_square(x))
+		.collect()
+}
+
+fn get_diagonal_moves(from64: i32) -> MovePath {
+
+	let (file, _) = get_file_rank(from64);
+
+	let se: Vec<i32> = (1..=8 - file).map(|f| from64 + (f * 9)).collect();
+	let sw : Vec<i32> = (1..file).map(|f| from64 + (f * 7)).collect();
+	let ne : Vec<i32> = (1..=8 - file).map(|f| from64 - (f * 7)).collect();
+	let nw : Vec<i32> = (1..file).map(|f| from64 - (f * 9)).collect();
+
+	MovePath {
+		se: se.iter().copied().filter(|x| *x >= 0 && *x <= 63).collect(),
+		sw: sw.iter().copied().filter(|x| *x >= 0 && *x <= 63).collect(),
+		ne: ne.iter().copied().filter(|x| *x >= 0 && *x <= 63).collect(),
+		nw: nw.iter().copied().filter(|x| *x >= 0 && *x <= 63).collect(),
 		..Default::default()
 	}
 }
