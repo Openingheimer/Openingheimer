@@ -8,13 +8,13 @@ pub trait PieceBrain {
     #[allow(dead_code)]
     fn as_value(&self) -> i32;
 	fn as_fen(&self) -> char;
-	fn is_legal_move(&self, fenboard: FenBoard) -> MoveResult;
+	fn try_move_piece(&self, fenboard: FenBoard) -> MoveResult;
     fn get_moves(&self, fen: SharedString, from64: i32) -> Vec<SharedString>;
 }
 
 impl PieceBrain for Piece {
 
-	fn is_legal_move(&self, fenboard: FenBoard) -> MoveResult {
+	fn try_move_piece(&self, fenboard: FenBoard) -> MoveResult {
 
         match self.piece_type {
             PieceType::Pawn => try_pawn_move(self.clone(), fenboard.clone()),

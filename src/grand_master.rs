@@ -28,17 +28,25 @@ fn make_move(fenboard: FenBoard) -> MoveResult {
 
 fn can_make_move(fenboard: FenBoard, piece: Piece) -> MoveResult {
 
-	let mut move_result = piece.is_legal_move(fenboard.clone());
+	let mut move_result = piece.try_move_piece(fenboard.clone());
 
 	if move_result.success == false ||
 	   piece.color != fenboard.active_color ||
 	   fenboard.from64 == fenboard.to64 ||
-	   friendly_fire(piece.clone(), fenboard.to_piece) {
+	   is_piece_pinned(&fenboard) ||
+	   friendly_fire(&piece, &fenboard.to_piece) {
 
 		move_result.success = false;
 	}
 
 	move_result.clone()
+}
+
+fn is_piece_pinned(fenboard: &FenBoard) -> bool {
+
+	let our_color = fenboard.from_piece.clone().unwrap().color;
+
+	get_pinned_pieces(fenboard.fen64.clone(), &our_color).contains(&fenboard.from64)
 }
 
 pub fn try_rook_move(fenboard: FenBoard) -> MoveResult {
@@ -165,10 +173,105 @@ fn get_enemy_attacked_squares(fen: SharedString, from64: i32) -> Vec<SharedStrin
 	fen64
 		.iter()
 		.enumerate()
-	    .map(|(i, x)| (i, get_piece_from_fen_code(*x)))
+	    .map(|(i, x)| (i, get_piece_from_fen_code(&x)))
 		.filter(|(_, x)| x.as_ref().is_some_and(|piece| piece.color != our_color))
 		.flat_map(|(i, x)| x.unwrap().get_moves(fen.clone(), i as i32))
 		.collect()
+}
+
+fn get_pinned_pieces(fen64: SharedString, our_color: &Color) -> Vec<i32> {
+
+	let enemy_pinners: Vec<(i32, PieceType)> = fen64
+		.chars()
+		.into_iter()
+		.enumerate()
+	    .map(|(i, x)| (i, get_piece_from_fen_code(&x)))
+		.filter(|(_, x)| x.as_ref().is_some_and(|piece| piece.color != *our_color &&
+				(piece.piece_type == PieceType::Bishop ||
+				piece.piece_type == PieceType::Rook ||
+				piece.piece_type == PieceType::Queen)))
+		.map(|(i,x)| (i as i32, x.unwrap().piece_type))
+		.collect();
+
+	let search_paths : Vec<MovePath> = enemy_pinners
+		.iter()
+		.map(|(i, piece)| match piece {
+	        PieceType::Bishop => get_diagonal_moves(*i),
+			PieceType::Rook => get_straight_moves(*i),
+			PieceType::Queen => {
+				let straight_moves = get_straight_moves(*i);
+				let diagonal_moves = get_diagonal_moves(*i);
+
+				MovePath {
+					north: straight_moves.north,
+					west: straight_moves.west,
+					east: straight_moves.east,
+					south: straight_moves.south,
+					ne: diagonal_moves.ne,
+					nw: diagonal_moves.nw,
+					se: diagonal_moves.se,
+					sw: diagonal_moves.sw,
+				 }
+			},
+
+			_ => MovePath {..Default::default()},
+    })
+	.collect();
+
+	let fen = fen64.chars().collect();
+
+	search_paths
+		.iter()
+		.map(|x| search_for_pinned_pieces(&fen, x, &our_color))
+		.filter(|x| x.is_some())
+		.map(|x| x.unwrap())
+		.collect()
+}
+
+fn search_for_pinned_pieces(fen64: &Vec<char>, move_path: &MovePath, our_color: &Color) -> Option<i32> {
+
+	[&move_path.north,
+	&move_path.south,
+	&move_path.east,
+	&move_path.west,
+	&move_path.ne,
+	&move_path.nw,
+	&move_path.se,
+	&move_path.sw]
+	.iter()
+	.find_map(|direction| find_pinned_piece(&fen64, direction, &our_color))
+}
+
+fn find_pinned_piece(fen64: &Vec<char>, move_path: &Vec<i32>, our_color: &Color) -> Option<i32> {
+
+	let pieces: Vec<(usize, i32, Option<Piece>)>  = move_path
+		.iter()
+		.enumerate()
+		.map(|(i, i64)| (i, *i64, get_piece_from_fen64(&fen64, *i64)))
+		.collect();
+
+	let our_king = pieces
+		.iter()
+		.find(|piece| piece.2.as_ref().is_some_and(|p| p.piece_type == PieceType:: King && p.color == *our_color));
+
+	let front_line_piece = pieces
+		.iter()
+		.find(|piece| piece.2.as_ref().is_some());
+
+	match (our_king, front_line_piece) {
+		(Some(k), Some(fl)) if fl.2.as_ref().unwrap().color == *our_color => {
+
+			let has_clear_path = ((fl.0 + 1)..(k.0)).all(|x| square_is_empty(fen64, move_path[x]));
+
+			match has_clear_path {
+				true => {
+					Some(fl.1)
+				},
+				false => None
+			}
+		},
+		(_, _) => None
+	}
 }
 
 fn get_influence_path(move_path: MovePath, fen: SharedString) -> Vec<i32> {
@@ -399,7 +502,7 @@ fn get_file_rank(from64: i32) -> (i32, i32) {
 	(file, rank)
 }
 
-fn friendly_fire(piece: Piece, destination_piece: Option<Piece>) -> bool {
+fn friendly_fire(piece: &Piece, destination_piece: &Option<Piece>) -> bool {
 	if let Some(dp) = destination_piece {
 		if piece.color == dp.color{
 			return true;
@@ -417,5 +520,5 @@ fn pawn_path_is_clear(fen64: SharedString, squares: Vec<i32>) -> bool {
 }
 
 fn square_is_empty(fen64: &Vec<char>, square: i32) -> bool {
-	get_piece_from_fen_code(fen64[square as usize]).is_none()
+	get_piece_from_fen_code(&fen64[square as usize]).is_none()
 }

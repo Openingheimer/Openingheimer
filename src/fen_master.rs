@@ -19,8 +19,8 @@ use slint::{SharedString, ToSharedString};
 	let current_square_code = fen_piece_placement[from_fen_index];
 	let destination_square_code = fen_piece_placement[to_fen_index];
 
-	let piece = get_piece_from_fen_code(current_square_code);
-	let destination_piece = get_piece_from_fen_code(destination_square_code);
+	let piece = get_piece_from_fen_code(&current_square_code);
+	let destination_piece = get_piece_from_fen_code(&destination_square_code);
 
 	FenBoard {
 		piece_placement: piece_placement.clone().into(),
@@ -179,7 +179,7 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 
      let piece_code = get_piece_code_from_fen(fen, square_to_index64(square));
 
-	 get_piece_from_fen_code(piece_code.chars().next().unwrap())
+	 get_piece_from_fen_code(&piece_code.chars().next().unwrap())
 }
 
  pub fn get_piece_code_from_fen(fen: SharedString, cell_index: i32) -> SharedString {
@@ -201,7 +201,11 @@ fn update_en_passant(fenboard: &mut FenBoard) {
     value.to_string().into()
 }
 
- pub fn get_piece_from_fen_code(fen_code: char) -> Option<Piece> {
+ pub fn get_piece_from_fen64(fen64: &Vec<char>, from64: i32) -> Option<Piece> {
+     get_piece_from_fen_code(&fen64[from64 as usize])
+}
+
+ pub fn get_piece_from_fen_code(fen_code: &char) -> Option<Piece> {
 
 	let color = match fen_code {
 		c if c.is_uppercase() => Color::White,
