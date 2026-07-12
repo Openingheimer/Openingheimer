@@ -223,7 +223,6 @@ fn get_pinned_pieces(fenboard: &FenBoard) -> Vec<i32> {
 					sw: diagonal_moves.sw,
 				 })
 			},
-
 			_ => (*i, MovePath {..Default::default()}),
     })
 	.collect();

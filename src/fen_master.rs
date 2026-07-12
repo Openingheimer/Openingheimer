@@ -97,6 +97,10 @@ fn update_piece_placement(fenboard: &mut FenBoard) {
         piece_placement[captured_pawn] = '.';
     }
 
+	if fenboard.move_type == MoveType::Promotion || fenboard.move_type == MoveType::CapturePromotion {
+		piece_placement[fenboard.to_fen71] = get_promotion_piece(fenboard.from_piece.clone().unwrap().color);
+	}
+
     fenboard.piece_placement = piece_placement.into_iter().collect::<String>().into();
 }
 
@@ -166,6 +170,8 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 	    _  => piece.as_fen().to_ascii_uppercase().to_shared_string(),
 	};
 
+	let promotion_piece = &get_promotion_piece(piece.color.clone()).to_string();
+
 	let to_square = match fenboard.move_type {
 		MoveType::Normal => fenboard.to_coords.clone(),
 		MoveType::Capture => "x".to_shared_string() + &fenboard.to_coords,
@@ -174,8 +180,8 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 			6 | 62 => "O-O".to_shared_string(),
 			_ => panic!("Illegal Castle")
 		},
-		MoveType::Promotion => fenboard.to_coords.to_shared_string() + "=Q",
-		MoveType::CapturePromotion => "x".to_shared_string() + &fenboard.to_coords + "=Q",
+		MoveType::Promotion => fenboard.to_coords.to_shared_string() + "=" + promotion_piece,
+		MoveType::CapturePromotion => "x".to_shared_string() + &fenboard.to_coords + "=" + promotion_piece,
 	};
 
 	let opposing_color = match &piece.color {
@@ -193,6 +199,13 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 		_ => san + &to_square + &is_check
 	}
 }
+
+ fn get_promotion_piece(color: Color) -> char {
+	match color {
+		Color::White => 'Q',
+		Color::Black => 'q',
+	}
+ }
 
  pub fn get_piece_from_fen(fen: SharedString, square: SharedString) -> Option<Piece> {
 
