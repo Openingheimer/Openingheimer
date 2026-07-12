@@ -42,13 +42,6 @@ fn can_make_move(fenboard: FenBoard, piece: Piece) -> MoveResult {
 	move_result.clone()
 }
 
-fn is_piece_pinned(fenboard: &FenBoard) -> bool {
-
-	let our_color = fenboard.from_piece.clone().unwrap().color;
-
-	get_pinned_pieces(fenboard.fen64.clone(), &our_color).contains(&fenboard.from64)
-}
-
 pub fn try_rook_move(fenboard: FenBoard) -> MoveResult {
 
 	let legal_moves = get_rook_moves(fenboard.to_fen(), fenboard.from64);
@@ -179,30 +172,39 @@ fn get_enemy_attacked_squares(fen: SharedString, from64: i32) -> Vec<SharedStrin
 		.collect()
 }
 
-fn get_pinned_pieces(fen64: SharedString, our_color: &Color) -> Vec<i32> {
+fn is_piece_pinned(fenboard: &FenBoard) -> bool {
+	get_pinned_pieces(&fenboard).contains(&fenboard.from64)
+}
+
+fn get_pinned_pieces(fenboard: &FenBoard) -> Vec<i32> {
+
+	let fen64: Vec<char> = fenboard.fen64.chars().collect();
+	let our_color = fenboard.from_piece.clone().unwrap().color;
 
 	let enemy_pinners: Vec<(i32, PieceType)> = fen64
-		.chars()
+		.clone()
 		.into_iter()
 		.enumerate()
 	    .map(|(i, x)| (i, get_piece_from_fen_code(&x)))
-		.filter(|(_, x)| x.as_ref().is_some_and(|piece| piece.color != *our_color &&
+		.filter(|(_, x)| x.as_ref().is_some_and(|piece| piece.color != our_color &&
 				(piece.piece_type == PieceType::Bishop ||
 				piece.piece_type == PieceType::Rook ||
 				piece.piece_type == PieceType::Queen)))
 		.map(|(i,x)| (i as i32, x.unwrap().piece_type))
 		.collect();
 
-	let search_paths : Vec<MovePath> = enemy_pinners
+	let search_paths : Vec<(i32, MovePath)> = enemy_pinners
+		.clone()
 		.iter()
 		.map(|(i, piece)| match piece {
-	        PieceType::Bishop => get_diagonal_moves(*i),
-			PieceType::Rook => get_straight_moves(*i),
+	        PieceType::Bishop => (*i, get_diagonal_moves(*i)),
+			PieceType::Rook => (*i, get_straight_moves(*i)),
 			PieceType::Queen => {
+
 				let straight_moves = get_straight_moves(*i);
 				let diagonal_moves = get_diagonal_moves(*i);
 
-				MovePath {
+				(*i, MovePath {
 					north: straight_moves.north,
 					west: straight_moves.west,
 					east: straight_moves.east,
@@ -211,40 +213,38 @@ fn get_pinned_pieces(fen64: SharedString, our_color: &Color) -> Vec<i32> {
 					nw: diagonal_moves.nw,
 					se: diagonal_moves.se,
 					sw: diagonal_moves.sw,
-				 }
+				 })
 			},
 
-			_ => MovePath {..Default::default()},
+			_ => (*i, MovePath {..Default::default()}),
     })
 	.collect();
 
-	let fen = fen64.chars().collect();
-
 	search_paths
 		.iter()
-		.map(|x| search_for_pinned_pieces(&fen, x, &our_color))
+		.map(|x| search_for_pinned_pieces(&fen64, x, &our_color, &fenboard.to64))
 		.filter(|x| x.is_some())
 		.map(|x| x.unwrap())
 		.collect()
 }
 
-fn search_for_pinned_pieces(fen64: &Vec<char>, move_path: &MovePath, our_color: &Color) -> Option<i32> {
+fn search_for_pinned_pieces(fen64: &Vec<char>, move_path: &(i32, MovePath), our_color: &Color, to64: &i32) -> Option<i32> {
 
-	[&move_path.north,
-	&move_path.south,
-	&move_path.east,
-	&move_path.west,
-	&move_path.ne,
-	&move_path.nw,
-	&move_path.se,
-	&move_path.sw]
+	[(&move_path.0, &move_path.1.south),
+	(&move_path.0, &move_path.1.north),
+	(&move_path.0, &move_path.1.east),
+	(&move_path.0, &move_path.1.west),
+	(&move_path.0, &move_path.1.ne),
+	(&move_path.0, &move_path.1.nw),
+	(&move_path.0, &move_path.1.se),
+	(&move_path.0, &move_path.1.sw)]
 	.iter()
-	.find_map(|direction| find_pinned_piece(&fen64, direction, &our_color))
+	.find_map(|direction| find_pinned_piece(fen64, direction, our_color, to64))
 }
 
-fn find_pinned_piece(fen64: &Vec<char>, move_path: &Vec<i32>, our_color: &Color) -> Option<i32> {
+fn find_pinned_piece(fen64: &Vec<char>, move_path: &(&i32, &Vec<i32>), our_color: &Color, to64: &i32) -> Option<i32> {
 
-	let pieces: Vec<(usize, i32, Option<Piece>)>  = move_path
+	let pieces: Vec<(usize, i32, Option<Piece>)>  = move_path.1
 		.iter()
 		.enumerate()
 		.map(|(i, i64)| (i, *i64, get_piece_from_fen64(&fen64, *i64)))
@@ -259,15 +259,18 @@ fn find_pinned_piece(fen64: &Vec<char>, move_path: &Vec<i32>, our_color: &Color)
 		.find(|piece| piece.2.as_ref().is_some());
 
 	match (our_king, front_line_piece) {
+
 		(Some(k), Some(fl)) if fl.2.as_ref().unwrap().color == *our_color => {
 
-			let has_clear_path = ((fl.0 + 1)..(k.0)).all(|x| square_is_empty(fen64, move_path[x]));
+			let is_pinned = ((fl.0 + 1)..(k.0)).all(|x| square_is_empty(fen64, move_path.1[x]));
+			let capturing_the_pinner = *move_path.0 == *to64;
+			let moving_off_pinned_path = *&move_path.1.contains(*&to64) == false;
 
-			match has_clear_path {
-				true => {
+			match is_pinned {
+				true if capturing_the_pinner == false && moving_off_pinned_path => {
 					Some(fl.1)
 				},
-				false => None
+				_ => None
 			}
 		},
 		(_, _) => None
