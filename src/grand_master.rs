@@ -50,10 +50,9 @@ pub fn try_rook_move(fenboard: FenBoard) -> MoveResult {
 
 pub fn get_rook_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
 
-	let color = get_color_from_square(fen.clone(), index64_to_square(from64));
 	let move_path = get_straight_moves(from64);
 
-	get_legal_move_path(move_path, fen, color)
+	get_influence_path(move_path, fen)
 		.into_iter()
 		.map(|x| index64_to_square(x))
 		.collect()
@@ -81,10 +80,9 @@ pub fn try_bishop_move(fenboard: FenBoard) -> MoveResult {
 
 pub fn get_bishop_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
 
-	let color = get_color_from_square(fen.clone(), index64_to_square(from64));
 	let move_path = get_diagonal_moves(from64);
 
-	get_legal_move_path(move_path, fen, color)
+	get_influence_path(move_path, fen)
 		.into_iter()
 		.map(|x| index64_to_square(x))
 		.collect()
@@ -126,14 +124,19 @@ pub fn get_queen_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
 
 pub fn try_king_move(fenboard: FenBoard) -> MoveResult {
 
-	let legal_moves = get_king_moves(fenboard.to_fen(), fenboard.from64);
+	let fen = fenboard.to_fen();
+	let legal_moves = get_king_moves(fen.clone(), fenboard.from64);
 
-	MoveResult { success: legal_moves.contains(&fenboard.to_coords), fenboard: fenboard }
+	let attacked_squares = get_enemy_attacked_squares(fen.clone(), fenboard.from64);
+
+	let can_move = legal_moves.contains(&fenboard.to_coords) &&
+				   attacked_squares.contains(&fenboard.to_coords) == false;
+
+	MoveResult { success: can_move, fenboard: fenboard }
 }
 
 pub fn get_king_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
 
-	let color = get_color_from_square(fen.clone(), index64_to_square(from64));
 	let straight = get_straight_moves(from64);
 	let diagonal = get_diagonal_moves(from64);
 
@@ -148,22 +151,36 @@ pub fn get_king_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
 		sw: diagonal.sw.get(0).copied().into_iter().collect(),
 	};
 
-	get_legal_move_path(king_path, fen, color)
+	get_influence_path(king_path, fen)
 		.into_iter()
 		.map(|x| index64_to_square(x))
 		.collect()
 }
 
-fn get_legal_move_path(move_path: MovePath, fen: SharedString, color: Color) -> Vec<i32> {
+fn get_enemy_attacked_squares(fen: SharedString, from64: i32) -> Vec<SharedString> {
 
-	let north = get_legal_path(&move_path.north, &fen, &color);
-	let south = get_legal_path(&move_path.south, &fen, &color);
-	let east = get_legal_path(&move_path.east, &fen, &color);
-	let west = get_legal_path(&move_path.west, &fen, &color);
-	let ne = get_legal_path(&move_path.ne, &fen, &color);
-	let nw = get_legal_path(&move_path.nw, &fen, &color);
-	let se = get_legal_path(&move_path.se, &fen, &color);
-	let sw = get_legal_path(&move_path.sw, &fen, &color);
+	let fen64: Vec<char> = to_fen64(fen.clone()).chars().collect();
+	let our_color = get_color_from_square(fen.clone(), index64_to_square(from64));
+
+	fen64
+		.iter()
+		.enumerate()
+	    .map(|(i, x)| (i, get_piece_from_fen_code(*x)))
+		.filter(|(_, x)| x.as_ref().is_some_and(|piece| piece.color != our_color))
+		.flat_map(|(i, x)| x.unwrap().get_moves(fen.clone(), i as i32))
+		.collect()
+}
+
+fn get_influence_path(move_path: MovePath, fen: SharedString) -> Vec<i32> {
+
+	let north = path_to_first_piece(&move_path.north, &fen);
+	let south = path_to_first_piece(&move_path.south, &fen);
+	let east = path_to_first_piece(&move_path.east, &fen);
+	let west = path_to_first_piece(&move_path.west, &fen);
+	let ne = path_to_first_piece(&move_path.ne, &fen);
+	let nw = path_to_first_piece(&move_path.nw, &fen);
+	let se = path_to_first_piece(&move_path.se, &fen);
+	let sw = path_to_first_piece(&move_path.sw, &fen);
 
 	let mut moves = north;
 
@@ -178,7 +195,7 @@ fn get_legal_move_path(move_path: MovePath, fen: SharedString, color: Color) -> 
 	moves
 }
 
-fn get_legal_path(moves: &Vec<i32>, fen: &SharedString, color: &Color) -> Vec<i32> {
+fn path_to_first_piece(moves: &Vec<i32>, fen: &SharedString) -> Vec<i32> {
 
 	let fen64: Vec<char> = to_fen64(fen.clone()).chars().collect();
 
@@ -187,17 +204,14 @@ fn get_legal_path(moves: &Vec<i32>, fen: &SharedString, color: &Color) -> Vec<i3
 		.take_while(|x| square_is_empty(&fen64, **x))
 		.count();
 
-	let capture_leeway = match moves.get(first_contact_at) {
-	    Some(x) => match get_piece_from_fen(fen.clone(), index64_to_square(*x)) {
-			Some(p) if p.color != color.clone() => 1,
-			_ => 0
-		},
+	let piece_on_square_leeway = match moves.get(first_contact_at) {
+	    Some(_) => 1,
 	    None => 0,
 	};
 
 	moves.clone()
 		.into_iter()
-		.take(first_contact_at + capture_leeway)
+		.take(first_contact_at + piece_on_square_leeway)
 		.collect()
 }
 
@@ -228,7 +242,7 @@ fn is_marching_forward(pawn: Piece, fenboard: FenBoard) -> bool {
 
 	let requested_move = (fenboard.from64 - fenboard.to64).abs();
 	let moving_two = can_move_two && requested_move == 16;
-	let moving_forward = forwards_movement(pawn.color.clone(), fenboard.from64, fenboard.to64);
+	let moving_forward = forwards_movement(&pawn.color, fenboard.from64, fenboard.to64);
 
 	let legal_move = moving_forward && (requested_move == 8 || (can_move_two && requested_move == 16));
 	let pawn_path = get_pawn_path(fenboard.from64, fenboard.to64, moving_two, pawn.color.clone());
@@ -239,25 +253,7 @@ fn is_marching_forward(pawn: Piece, fenboard: FenBoard) -> bool {
 
 fn is_pawn_capture(pawn: Piece, fenboard: FenBoard) -> (bool, bool) {
 
-	let requested_move = (fenboard.from64 - fenboard.to64).abs();
-
-	let a_pawn = fenboard.from64 % 8 == 0;
-	let h_pawn = (fenboard.from64 + 1) % 8 == 0;
-	let rook_pawn = a_pawn || h_pawn;
-
-	let attempted_capture = match rook_pawn {
-		false => requested_move == 7 || requested_move == 9,
-		true => match a_pawn {
-			true => match pawn.color.clone() {
-				Color::White => requested_move == 7,
-				Color::Black => requested_move == 9,
-			},
-			false => match pawn.color.clone() {
-				Color::White => requested_move == 9,
-				Color::Black => requested_move == 7,
-			},
-		},
-	} && forwards_movement(pawn.color.clone(), fenboard.from64, fenboard.to64);
+	let attempted_capture = is_attempting_pawn_capture(&pawn, fenboard.from64, fenboard.to64);
 
 	match fenboard.to_piece {
 		Some(p) if p.color != pawn.color && attempted_capture  => (true, false),
@@ -275,6 +271,43 @@ fn is_pawn_capture(pawn: Piece, fenboard: FenBoard) -> (bool, bool) {
 	}
 }
 
+fn is_attempting_pawn_capture(pawn: &Piece, from64: i32, to64: i32) -> bool {
+
+	let requested_move = (from64 - to64).abs();
+
+	let a_pawn = from64 % 8 == 0;
+	let h_pawn = (from64 + 1) % 8 == 0;
+	let rook_pawn = a_pawn || h_pawn;
+
+	(match rook_pawn {
+		false => requested_move == 7 || requested_move == 9,
+		true => match a_pawn {
+			true => match pawn.color {
+				Color::White => requested_move == 7,
+				Color::Black => requested_move == 9,
+			},
+			false => match pawn.color {
+				Color::White => requested_move == 9,
+				Color::Black => requested_move == 7,
+			},
+		},
+	}) && forwards_movement(&pawn.color, from64, to64)
+}
+
+pub fn get_pawn_attacked_squares(pawn: Piece, from64: i32) -> Vec<SharedString> {
+
+	let attacked_squares = match pawn.color {
+		Color::White => [(from64 - 7), (from64 - 9)],
+		Color::Black => [(from64 + 7), (from64 + 9)],
+	};
+
+	attacked_squares
+	.iter()
+	.filter(|x| is_attempting_pawn_capture(&pawn, from64, **x))
+	.map(|x| index64_to_square(*x))
+	.collect()
+}
+
 fn is_promotion(to64: i32, color:Color) -> bool {
 	match color {
 		Color::White => to64 < 8,
@@ -282,7 +315,7 @@ fn is_promotion(to64: i32, color:Color) -> bool {
 	}
 }
 
-fn forwards_movement(color: Color, from64: i32, to64: i32) -> bool {
+fn forwards_movement(color: &Color, from64: i32, to64: i32) -> bool {
 	match color {
 		Color::White => from64 > to64,
 		Color::Black => from64 < to64

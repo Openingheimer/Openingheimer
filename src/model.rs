@@ -34,7 +34,7 @@ impl PieceBrain for Piece {
             PieceType::Rook => get_rook_moves(fen, from64),
             PieceType::Queen => get_queen_moves(fen, from64),
             PieceType::King => get_king_moves(fen, from64),
-			PieceType::Pawn => [].to_vec()
+			PieceType::Pawn => get_pawn_attacked_squares(self.clone(), from64)
         }
     }
 
