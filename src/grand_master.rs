@@ -256,7 +256,7 @@ fn find_pinned_piece(fen64: &Vec<char>, move_path: &(&i32, &Vec<i32>), our_color
 
 	let front_line_piece = pieces
 		.iter()
-		.find(|piece| piece.2.as_ref().is_some());
+		.find(|piece| piece.2.as_ref().is_some_and(|p| p.piece_type != PieceType::King));
 
 	match (our_king, front_line_piece) {
 
