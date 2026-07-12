@@ -42,6 +42,15 @@ fn can_make_move(fenboard: FenBoard, piece: Piece) -> MoveResult {
 	move_result.clone()
 }
 
+pub fn is_king_in_check(piece_placement: SharedString, color: &Color) -> bool {
+
+	let fen64 = to_fen64(piece_placement);
+
+	let king_square = get_king_square(fen64.clone(), &color);
+
+	get_squares_under_fire_for(fen64.clone(), color).contains(&king_square)
+}
+
 pub fn try_rook_move(fenboard: FenBoard) -> MoveResult {
 
 	let legal_moves = get_rook_moves(fenboard.to_fen(), fenboard.from64);
@@ -126,10 +135,10 @@ pub fn get_queen_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
 pub fn try_king_move(fenboard: FenBoard) -> MoveResult {
 
 	let fen = fenboard.to_fen();
+	let our_color = get_color_from_square(fen.clone(), index64_to_square(fenboard.from64));
+	let attacked_squares = get_squares_under_fire_for(fen.clone(), &our_color);
+
 	let legal_moves = get_king_moves(fen.clone(), fenboard.from64);
-
-	let attacked_squares = get_enemy_attacked_squares(fen.clone(), fenboard.from64);
-
 	let can_move = legal_moves.contains(&fenboard.to_coords) &&
 				   attacked_squares.contains(&fenboard.to_coords) == false;
 
@@ -158,16 +167,15 @@ pub fn get_king_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
 		.collect()
 }
 
-fn get_enemy_attacked_squares(fen: SharedString, from64: i32) -> Vec<SharedString> {
+fn get_squares_under_fire_for(fen: SharedString, color: &Color) -> Vec<SharedString> {
 
 	let fen64: Vec<char> = to_fen64(fen.clone()).chars().collect();
-	let our_color = get_color_from_square(fen.clone(), index64_to_square(from64));
 
 	fen64
 		.iter()
 		.enumerate()
 	    .map(|(i, x)| (i, get_piece_from_fen_code(&x)))
-		.filter(|(_, x)| x.as_ref().is_some_and(|piece| piece.color != our_color))
+		.filter(|(_, x)| x.as_ref().is_some_and(|piece| piece.color != *color))
 		.flat_map(|(i, x)| x.unwrap().get_moves(fen.clone(), i as i32))
 		.collect()
 }

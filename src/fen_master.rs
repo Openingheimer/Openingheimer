@@ -1,4 +1,5 @@
 use crate::model::*;
+use crate::grand_master::*;
 use std::iter::repeat;
 use slint::{SharedString, ToSharedString};
 
@@ -57,13 +58,21 @@ pub fn to_fen64(fen: SharedString) -> SharedString {
 
 pub fn apply_move(mut move_result: MoveResult) -> MoveResult {
 
+	let mut aborted_move = move_result.clone();
+	aborted_move.success = false;
+
     update_piece_placement(&mut move_result.fenboard);
     update_ply(&mut move_result.fenboard);
     update_en_passant(&mut move_result.fenboard);
     update_move_type(&mut move_result.fenboard);
     update_san_move(&mut move_result.fenboard);
 
-    move_result
+	let our_king_still_in_check = is_king_in_check(move_result.fenboard.piece_placement.clone(), &&aborted_move.fenboard.active_color);
+
+	match our_king_still_in_check {
+		true => aborted_move,
+		false => move_result
+	}
 }
 
 fn update_piece_placement(fenboard: &mut FenBoard) {
@@ -169,9 +178,19 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 		MoveType::CapturePromotion => "x".to_shared_string() + &fenboard.to_coords + "=Q",
 	};
 
+	let opposing_color = match &piece.color {
+		Color::White => Color::Black,
+		Color::Black => Color::White
+	};
+
+	let is_check: SharedString = match is_king_in_check(fenboard.piece_placement.clone(), &opposing_color) {
+		true => "+".into(),
+		false => "".into()
+	};
+
 	fenboard.san_move = match fenboard.move_type {
-		MoveType::Castle => to_square,
-		_ => san + &to_square
+		MoveType::Castle => to_square + &is_check,
+		_ => san + &to_square + &is_check
 	}
 }
 
@@ -226,6 +245,21 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 		Some(p) => Some(Piece { piece_type: p, color: color }),
 		None => None,
 	}
+}
+
+pub fn get_king_square(fen64: SharedString, color: &Color) -> SharedString {
+
+	let index = fen64
+		.chars()
+		.enumerate()
+		.map(|(i, x)| (i, get_piece_from_fen_code(&x)))
+		.filter(|(_i, x)| x.is_some())
+		.map(|(i, x)| (i, x.unwrap()))
+		.find(|(_i, x)| x.piece_type == PieceType::King && x.color == *color)
+		.unwrap()
+		.0 as i32;
+
+	index64_to_square(index)
 }
 
 pub fn get_piece_color_from_square(fen: SharedString, square: SharedString) -> SharedString {
