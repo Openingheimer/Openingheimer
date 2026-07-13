@@ -10,7 +10,9 @@ use std::error::Error;
 use std::rc::Rc;
 use slint::PhysicalSize;
 use slint::Model;
+use slint::SharedString;
 use slint::ToSharedString;
+use slint::Weak;
 use std::sync::atomic::{AtomicU64, Ordering};
 use crate::fen_master::*;
 use crate::grand_master::*;
@@ -45,76 +47,60 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     let make_move_weak = ui_handle.clone();
-
 	ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
-
-        println!("Making Move {} {}", origin, destination);
-
-        if origin == "" || destination == "" {
-            return false;
-        }
-
-        let move_result = try_make_move(fen, origin, destination);
-
-		if move_result.success {
-            let handle = make_move_weak.unwrap();
-
-            let moves = update_move_list(&handle, move_result.clone());
-
-            handle.set_fen(move_result.fenboard.to_fen());
-            handle.set_player_color(move_result.fenboard.active_color.as_str().into());
-            handle.set_move_rows(Rc::new(slint::VecModel::from(moves)).into());
-        }
-
-        move_result.success
+        do_make_move(&make_move_weak, fen, origin, destination)
     });
 
     let is_legal_weak = ui_handle.clone();
     ui.global::<Callbacks>().on_check_legal_move(move |square| -> bool {
-
-        if square == "" {
-            return false;
-        }
-
-        let handle = is_legal_weak.unwrap();
-        let legal_moves = handle.get_legal_moves();
-
-        legal_moves.iter().any(|m| m.as_str() == square.as_str())
+        do_check_legal_square(&is_legal_weak, square)
     });
 
     let refresh_legal_moves = ui_handle.clone();
     ui.global::<Callbacks>().on_refresh_legal_moves(move |fen, square, clear| {
-
-        if square != "" {
-            let handle = refresh_legal_moves.unwrap();
-            let piece = get_piece_from_fen(fen.clone(), square.clone());
-
-            let legal_moves = match piece {
-                _ if clear => [].to_vec(),
-                Some(p) => p.get_moves(fen, square_to_index64(square)),
-                _ => [].to_vec(),
-            };
-
-            handle.set_legal_moves(Rc::new(slint::VecModel::from(legal_moves)).into());
-        }
-
+        do_refresh_legal_moves(&refresh_legal_moves, fen, square, clear)
     });
 
     let go_to_position = ui_handle.clone();
-    ui.global::<Callbacks>().on_go_to_position(move |moves| {
-
-        let handle = go_to_position.unwrap();
-
-        let player_color: Vec<&str> = moves.fen.split(' ').collect();
-
-        handle.set_fen(moves.fen.clone());
-        handle.set_current_move(moves.id);
-        handle.set_player_color(player_color[1].to_shared_string());
+    ui.global::<Callbacks>().on_go_to_position(move |san_move| {
+        do_go_to_position(&go_to_position, san_move);
     });
 
     ui.run()?;
 
     Ok(())
+}
+
+fn do_make_move(ui: &Weak<AppWindow>, fen: SharedString, origin: SharedString, destination: SharedString) -> bool {
+
+    if origin == "" || destination == "" {
+        return false;
+    }
+
+    let move_result = try_make_move(fen, origin, destination);
+
+    if move_result.success {
+        let handle = ui.clone().unwrap();
+
+        let moves = update_move_list(&handle, move_result.clone());
+
+        handle.set_fen(move_result.fenboard.to_fen());
+        handle.set_player_color(move_result.fenboard.active_color.as_str().into());
+        handle.set_move_rows(Rc::new(slint::VecModel::from(moves)).into());
+    }
+
+    move_result.success
+}
+
+fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove) {
+
+    let handle = ui.unwrap();
+
+    let player_color: Vec<&str> = san_move.fen.split(' ').collect();
+
+    handle.set_fen(san_move.fen.clone());
+    handle.set_current_move(san_move.id);
+    handle.set_player_color(player_color[1].to_shared_string());
 }
 
 fn update_move_list(ui: &AppWindow, move_result: MoveResult) -> Vec<MoveRowItem> {
@@ -147,6 +133,34 @@ fn update_move_list(ui: &AppWindow, move_result: MoveResult) -> Vec<MoveRowItem>
     handle.set_current_move(id);
 
     moves
+}
+
+fn do_check_legal_square(ui: &Weak<AppWindow>, square: SharedString) -> bool {
+ if square == "" {
+        return false;
+    }
+
+    let handle = ui.unwrap();
+    let legal_moves = handle.get_legal_moves();
+
+    legal_moves.iter().any(|m| m.as_str() == square.as_str())
+}
+
+fn do_refresh_legal_moves(ui: &Weak<AppWindow>, fen: SharedString, square: SharedString, clear: bool) {
+
+    if square != "" {
+        let handle = ui.unwrap();
+        let piece = get_piece_from_fen(fen.clone(), square.clone());
+
+        let legal_moves = match piece {
+            _ if clear => [].to_vec(),
+            Some(p) => p.get_moves(fen, square_to_index64(square)),
+            _ => [].to_vec(),
+        };
+
+        handle.set_legal_moves(Rc::new(slint::VecModel::from(legal_moves)).into());
+    }
+
 }
 
 fn set_full_screen(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
