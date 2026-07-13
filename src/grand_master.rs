@@ -132,17 +132,62 @@ pub fn get_queen_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {
 	legal_moves
 }
 
-pub fn try_king_move(fenboard: FenBoard) -> MoveResult {
+pub fn try_king_move(mut fenboard: FenBoard) -> MoveResult {
 
 	let fen = fenboard.to_fen();
 	let our_color = get_color_from_square(fen.clone(), index64_to_square(fenboard.from64));
 	let attacked_squares = get_squares_under_fire_for(fen.clone(), &our_color);
 
 	let legal_moves = get_king_moves(fen.clone(), fenboard.from64);
-	let can_move = legal_moves.contains(&fenboard.to_coords) &&
-				   attacked_squares.contains(&fenboard.to_coords) == false;
+	let can_move = (legal_moves.contains(&fenboard.to_coords) &&
+				   attacked_squares.contains(&fenboard.to_coords) == false) ||
+				   is_castling(&mut fenboard);
 
 	MoveResult { success: can_move, fenboard: fenboard }
+}
+
+fn is_castling(fenboard: &mut FenBoard) -> bool {
+
+	let rights = fenboard.castling_availablity.chars();
+	let mut can_castle = false;
+
+	let castle_rights: Vec<char> = match fenboard.active_color {
+		Color::White => rights.filter(|x| x.is_uppercase()).collect(),
+		Color::Black => rights.filter(|x| x.is_lowercase()).collect()
+	};
+
+	for right in castle_rights{
+
+		can_castle = match fenboard.from_piece.clone().unwrap().color {
+			Color::White => safe_to_castle(fenboard.clone(), right, Color::White),
+			Color::Black => safe_to_castle(fenboard.clone(), right, Color::Black)
+		};
+
+		if can_castle {
+			fenboard.move_type = MoveType::Castle;
+			break;
+		}
+	}
+
+	can_castle
+}
+
+fn safe_to_castle(fenboard: FenBoard, castle_type: char, color: Color) -> bool {
+
+	let attacked_squares = get_squares_under_fire_for(fenboard.to_fen(), &color);
+
+	let (look_for_checks, attemping_castle)	= match castle_type {
+			'K' => (["e1", "f1", "g1"], fenboard.to_coords == "g1" && color == Color::White),
+			'Q' => (["e1", "d1", "c1"], fenboard.to_coords == "c1" && color == Color::White),
+			'k' => (["e8", "f8", "g8"], fenboard.to_coords == "g8" && color == Color::Black),
+			'q' => (["e8", "d8", "c8"], fenboard.to_coords == "c8" && color == Color::Black),
+			_ => (["", "", ""],  false),
+		};
+
+	attemping_castle &&
+	(attacked_squares
+		.iter()
+		.any(|x| look_for_checks.contains(&x.as_str())) == false)
 }
 
 pub fn get_king_moves(fen: SharedString, from64: i32) -> Vec<SharedString> {

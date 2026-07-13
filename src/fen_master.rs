@@ -62,6 +62,7 @@ pub fn apply_move(mut move_result: MoveResult) -> MoveResult {
 	aborted_move.success = false;
 
     update_piece_placement(&mut move_result.fenboard);
+    update_castle_rights(&mut move_result.fenboard);
     update_ply(&mut move_result.fenboard);
     update_en_passant(&mut move_result.fenboard);
     update_move_type(&mut move_result.fenboard);
@@ -84,24 +85,100 @@ fn update_piece_placement(fenboard: &mut FenBoard) {
     piece_placement[fenboard.to_fen71] = from_piece.as_fen();
     piece_placement[fenboard.from_fen71] = '.';
 
-    if fenboard.en_passant_capture {
-        let capture_offset = match fenboard.active_color {
-            Color::White => 8,
-            Color::Black => -8,
-        };
-
-        let captured_pawn = offset_slashes(
-            square_to_index64(fenboard.en_passant.clone()) + capture_offset
-        );
-
-        piece_placement[captured_pawn] = '.';
-    }
+	update_castle_piece_placement(fenboard.clone(), &mut piece_placement);
+	update_en_passant_piece_placement(fenboard.clone(), &mut piece_placement);
 
 	if fenboard.move_type == MoveType::Promotion || fenboard.move_type == MoveType::CapturePromotion {
 		piece_placement[fenboard.to_fen71] = get_promotion_piece(fenboard.from_piece.clone().unwrap().color);
 	}
 
     fenboard.piece_placement = piece_placement.into_iter().collect::<String>().into();
+}
+
+fn update_castle_piece_placement(fenboard: FenBoard, piece_placement: &mut Vec<char>) {
+
+	if fenboard.move_type == MoveType::Castle {
+
+		match fenboard.from_piece.as_ref().unwrap().color {
+			Color::White => {
+				match fenboard.to64 {
+					62 => {
+						piece_placement[offset_slashes(square_to_index64("h1".into()))] = '.';
+						piece_placement[offset_slashes(square_to_index64("f1".into()))] = 'R';
+					},
+					_ => {
+						piece_placement[offset_slashes(square_to_index64("a1".into()))] = '.';
+						piece_placement[offset_slashes(square_to_index64("d1".into()))] = 'R';
+					},
+				}
+			},
+			Color::Black => match fenboard.to64 {
+					6 => {
+						piece_placement[offset_slashes(square_to_index64("h8".into()))] = '.';
+						piece_placement[offset_slashes(square_to_index64("f8".into()))] = 'r';
+					},
+					_ => {
+						piece_placement[offset_slashes(square_to_index64("a8".into()))] = '.';
+						piece_placement[offset_slashes(square_to_index64("d8".into()))] = 'r';
+					},
+				},
+		}
+	}
+}
+
+fn update_en_passant_piece_placement(fenboard: FenBoard, piece_placement: &mut Vec<char>) {
+
+	if fenboard.en_passant_capture {
+        let capture_offset = match fenboard.active_color {
+            Color::White => 8,
+            Color::Black => -8,
+        };
+        let captured_pawn = offset_slashes(square_to_index64(fenboard.en_passant.clone()) + capture_offset);
+
+        piece_placement[captured_pawn] = '.';
+    }
+}
+
+fn update_castle_rights(fenboard: &mut FenBoard) {
+
+	let from_piece = fenboard.from_piece.clone().unwrap();
+	let mut availability = fenboard.castling_availablity.clone();
+
+	if availability != "-" {
+		availability = match from_piece.piece_type {
+			PieceType::King => {
+				match from_piece.color {
+					Color::White => availability.chars()
+							.filter(|&x| x != 'K')
+							.filter(|&x| x != 'Q')
+							.collect(),
+					Color::Black => availability.chars()
+							.filter(|&x| x != 'k')
+							.filter(|&x| x != 'q')
+							.collect()
+				}
+			},
+			PieceType::Rook => {
+				match from_piece.color {
+					Color::White => match fenboard.from_coords.as_str() {
+						"a1" => availability.chars().filter(|&x| x != 'Q').collect(),
+						 _ => availability.chars().filter(|&x| x != 'K').collect()
+					}
+					Color::Black => match fenboard.from_coords.as_str() {
+						"a8" => availability.chars().filter(|&x| x != 'q').collect(),
+						 _ => availability.chars().filter(|&x| x != 'k').collect()
+					}
+				}
+			},
+			_ => availability
+		};
+
+		if availability.is_empty() {
+			availability = "-".into();
+		}
+	}
+
+	fenboard.castling_availablity = availability;
 }
 
 fn update_ply(fenboard: &mut FenBoard) {
