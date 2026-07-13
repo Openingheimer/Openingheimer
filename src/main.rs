@@ -10,6 +10,8 @@ use std::error::Error;
 use std::rc::Rc;
 use slint::PhysicalSize;
 use slint::Model;
+use slint::ToSharedString;
+use std::sync::atomic::{AtomicU64, Ordering};
 use crate::fen_master::*;
 use crate::grand_master::*;
 use crate::model::MoveResult;
@@ -17,6 +19,8 @@ use crate::model::PieceBrain;
 use i_slint_backend_winit::WinitWindowAccessor;
 
 slint::include_modules!();
+
+static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
 fn main() -> Result<(), Box<dyn Error>> {
     let ui = AppWindow::new()?;
@@ -44,6 +48,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
 
+        println!("Making Move {} {}", origin, destination);
+
         if origin == "" || destination == "" {
             return false;
         }
@@ -57,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             handle.set_fen(move_result.fenboard.to_fen());
             handle.set_player_color(move_result.fenboard.active_color.as_str().into());
-            handle.set_move_list(Rc::new(slint::VecModel::from(moves)).into());
+            handle.set_move_rows(Rc::new(slint::VecModel::from(moves)).into());
         }
 
         move_result.success
@@ -94,28 +100,51 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     });
 
+    let go_to_position = ui_handle.clone();
+    ui.global::<Callbacks>().on_go_to_position(move |moves| {
+
+        let handle = go_to_position.unwrap();
+
+        let player_color: Vec<&str> = moves.fen.split(' ').collect();
+
+        handle.set_fen(moves.fen.clone());
+        handle.set_current_move(moves.id);
+        handle.set_player_color(player_color[1].to_shared_string());
+    });
+
     ui.run()?;
 
     Ok(())
 }
 
-fn update_move_list(ui: &AppWindow, move_result: MoveResult) -> Vec<Moves> {
+fn update_move_list(ui: &AppWindow, move_result: MoveResult) -> Vec<MoveRowItem> {
 
     let ui_handle = ui.as_weak();
     let handle = ui_handle.unwrap();
-    let move_list = handle.get_move_list();
-
-    let mut moves: Vec<Moves> = move_list.iter().collect();
+    let mut moves: Vec<MoveRowItem> = handle.get_move_rows().iter().collect();
+    let id = next_id().to_shared_string();
 
     match move_result.fenboard.active_color.as_str() {
-        "b" => moves.push(Moves {
-            white: move_result.fenboard.san_move.clone().into(),
-            black: "".into()
-        }),
+        "b" => {
+                moves.push(MoveRowItem {
+                    black: SanMove { fen: move_result.fenboard.to_fen(), id: "0".into(), san_text: "".into(), variation: "0".into() },
+                    white: SanMove {
+                        id: id.clone(),
+                        fen: move_result.fenboard.to_fen(),
+                        san_text: move_result.fenboard.san_move.into(),
+                        variation: "0".into()
+                    },
+                })
+            },
+
         _ =>  if let Some(last_move) = moves.last_mut() {
-                last_move.black = move_result.fenboard.san_move.clone().into();
+                last_move.black.id = id.clone();
+                last_move.black.fen = move_result.fenboard.to_fen();
+                last_move.black.san_text = move_result.fenboard.san_move;
             }
     }
+
+    handle.set_current_move(id);
 
     moves
 }
@@ -141,4 +170,8 @@ fn set_full_screen(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
     })?;
 
     return Ok(())
+}
+
+fn next_id() -> u64 {
+    NEXT_ID.fetch_add(1, Ordering::Relaxed)
 }

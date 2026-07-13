@@ -95,7 +95,7 @@ impl FenBoard {
             unpad_empty_squares(self.piece_placement.clone()),
             match self.active_color.clone() {
                 Color::White => "w",
-                Color::Black => "B"
+                Color::Black => "b"
             },
             self.castling_availablity,
             self.en_passant,

@@ -6,7 +6,8 @@ import {
     ScrollView,
 } from "std-widgets.slint";
 
-export struct Moves { white: string, black: string }
+
+import { MoveRowItem, SanMove, MoveRow } from "moverow.slint";
 
 export component MoveText {
     width: 400px;
@@ -16,7 +17,10 @@ export component MoveText {
     property <color> light: #454441;
     property <color> dark: #41403D;
 
-    in property <[Moves]> move_list;
+    in property <[MoveRowItem]> move_rows;
+    in-out property <string> current_move;
+
+    pure callback go_to_position(SanMove);
 
     Rectangle {
         background: dark;
@@ -24,41 +28,22 @@ export component MoveText {
         scroll := ScrollView {
             viewport-y: scroll.height - scroll.viewport-height;
 
+            property <color> font_color: #E7E2E6;
+
             VerticalLayout {
 
-                for move[i] in move_list: HorizontalLayout {
+                for move_row[i] in move_rows: HorizontalLayout {
+
+                    height: 40px;
 
                     property <color> bg: mod(i, 2) == 0 ? dark : light;
 
-                    height: 40px;
-                    Rectangle {
-                        width: 60px;
+                    MoveRow {
+                        move: move_row;
                         background: bg;
-                        Text {
-                            x: 10px;
-                            width: 100%;
-                            text: i + 1 + ".";
-                            font-size: font_size;
-                        }
-                    }
-
-                    Rectangle {
-                        background: bg;
-                        width: 140px;
-                        Text {
-                            width: 100%;
-                            text: move.white;
-                            font-size: font_size;
-                        }
-                    }
-
-                    Rectangle {
-                        background: bg;
-                        Text {
-                            width: 100%;
-                            text: move.black;
-                            font-size: font_size;
-                        }
+                        turn: i + 1;
+                        current_move: root.current_move;
+                        go_to_position(SanMove) => root.go_to_position(SanMove);
                     }
                 }
             }

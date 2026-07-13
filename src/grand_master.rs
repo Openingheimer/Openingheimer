@@ -361,19 +361,14 @@ fn path_to_first_piece(moves: &Vec<i32>, fen: &SharedString) -> Vec<i32> {
 
 	let fen64: Vec<char> = to_fen64(fen.clone()).chars().collect();
 
-	let first_contact_at = moves
+	let with_first_contact = moves
 		.iter()
 		.take_while(|x| square_is_empty(&fen64, **x))
-		.count();
-
-	let piece_on_square_leeway = match moves.get(first_contact_at) {
-	    Some(_) => 1,
-	    None => 0,
-	};
+		.count() + 1;
 
 	moves.clone()
 		.into_iter()
-		.take(first_contact_at + piece_on_square_leeway)
+		.take(with_first_contact)
 		.collect()
 }
 
