@@ -1,7 +1,7 @@
 import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 import { Chessboard } from "chessboard.slint";
-import { SanMove, MoveRowItem } from "moverow.slint";
 import { MoveText } from "movetext.slint";
+import { SanMove, SanMoveRow } from "model.slint";
 
 export global Callbacks {
     pure callback piece_from_fen(string, int) -> string;
@@ -18,53 +18,12 @@ export component AppWindow inherits Window {
 
     in-out property <string> fen:"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     in-out property <string> player_color;
-    in-out property <[MoveRowItem]> move_rows:  [
-        {
-            white: {
-                id: "1",
-                variation: "",
-                san_text: "e4",
-                fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
-            },
-            black: {
-                id: "2",
-                variation: "",
-                san_text: "e5",
-                fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"
-            }
-        },
-        {
-            white: {
-                id: "3",
-                variation: "",
-                san_text: "Nf3",
-                fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"
-            },
-            black: {
-                id: "4",
-                variation: "",
-                san_text: "Nc6",
-                fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"
-            }
-        },
-        {
-            white: {
-                id: "5",
-                variation: "",
-                san_text: "Bb5",
-                fen: "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"
-            },
-            black: {
-                id: "6",
-                variation: "",
-                san_text: "a6",
-                fen: "r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4"
-            }
-        }
-    ];
+    in-out property <[SanMoveRow]> move_rows;
     in-out property <[string]> legal_moves;
     in-out property <bool> is_full_screen: false;
-    in-out property <string> current_move;
+    in-out property <SanMove> current_move;
+    in-out property <int> last_move_in_variation;
+   // in-out property <int> active_variation;
 
     HorizontalBox {
         alignment: center;

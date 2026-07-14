@@ -1,19 +1,11 @@
 
-export struct SanMove {
-    id: string,
-    variation: string,
-    san_text: string,
-    fen: string,
-}
-
-export struct MoveRowItem { white: SanMove, black: SanMove }
+import { SanMoveRow, SanMove } from "model.slint";
 
 export component MoveRow {
 
-    in-out property <MoveRowItem> move;
-    in-out property <int> turn;
+    in-out property <SanMoveRow> move;
     in-out property <color> background;
-    in-out property <string> current_move;
+    in-out property <SanMove> current_move;
 
     property <color> highlight_color: #A4B849;
     property <length> font_size: 16px;
@@ -24,11 +16,15 @@ export component MoveRow {
     HorizontalLayout {
 
         Rectangle {
+            width: (move.depth - 1) * 50px;
+        }
+
+        Rectangle {
             width: 60px;
             background: root.background;
             Text {
                 x: 10px;
-                text: turn + ".";
+                text: move.turn + ".";
                 font-size: font_size;
                 width: 100%;
             }
@@ -47,7 +43,7 @@ export component MoveRow {
                 text: root.move.white.san-text;
                 font-size: font_size;
                 width: 100%;
-                color: move.white.id == current_move ? highlight_color : font_color;
+                color: move.white.id == current_move.id ? highlight_color : font_color;
             }
 
             TouchArea {
@@ -63,7 +59,7 @@ export component MoveRow {
                 text: root.move.black.san-text;
                 font-size: font_size;
                 width: 100%;
-                color: move.black.id == current_move ? highlight_color : font_color;
+                color: move.black.id == current_move.id ? highlight_color : font_color;
             }
 
             TouchArea {

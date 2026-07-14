@@ -3,6 +3,7 @@
 use crate::grand_master::*;
 use crate::fen_master::*;
 use slint::SharedString;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 pub trait PieceBrain {
     #[allow(dead_code)]
@@ -167,5 +168,16 @@ pub struct MoveResult {
 pub struct Piece {
 	pub piece_type: PieceType,
 	pub color: Color,
+}
+
+static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+static NEXT_VAR_ID: AtomicU64 = AtomicU64::new(1);
+
+pub fn next_id() -> i32 {
+    NEXT_ID.fetch_add(1, Ordering::Relaxed) as i32
+}
+
+pub fn next_variation_id() -> i32 {
+    NEXT_VAR_ID.fetch_add(1, Ordering::Relaxed) as i32
 }
 

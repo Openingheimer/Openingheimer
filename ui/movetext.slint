@@ -6,8 +6,8 @@ import {
     ScrollView,
 } from "std-widgets.slint";
 
-
-import { MoveRowItem, SanMove, MoveRow } from "moverow.slint";
+import { MoveRow } from "moverow.slint";
+import { SanMoveRow, SanMove } from "model.slint";
 
 export component MoveText {
     width: 400px;
@@ -17,8 +17,8 @@ export component MoveText {
     property <color> light: #454441;
     property <color> dark: #41403D;
 
-    in property <[MoveRowItem]> move_rows;
-    in-out property <string> current_move;
+    in property <[SanMoveRow]> move_rows;
+    in-out property <SanMove> current_move;
 
     pure callback go_to_position(SanMove);
 
@@ -41,7 +41,6 @@ export component MoveText {
                     MoveRow {
                         move: move_row;
                         background: bg;
-                        turn: i + 1;
                         current_move: root.current_move;
                         go_to_position(SanMove) => root.go_to_position(SanMove);
                     }

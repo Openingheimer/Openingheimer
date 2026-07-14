@@ -1,0 +1,21 @@
+
+export struct BoardSquare {
+    coords: string,
+    piece_color: string,
+    square_color: color,
+    image: image,
+    has_piece: bool,
+    legal_move: bool,
+}
+
+export struct SanMove {
+    id: int,
+    variation: int,
+    san_text: string,
+    fen: string,
+    previous_id: int,
+    next_id: int,
+    parent_branches: [int],
+}
+
+export struct SanMoveRow { turn: int, depth: int, white: SanMove, black: SanMove }
