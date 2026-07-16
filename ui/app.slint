@@ -23,7 +23,14 @@ export component AppWindow inherits Window {
     in-out property <bool> is_full_screen: false;
     in-out property <SanMove> current_move;
     in-out property <int> last_move_in_variation;
-   // in-out property <int> active_variation;
+
+    public function scroll-to-y(y: length) {
+        move_text.scroll-to-y(y);
+    }
+
+    public function scroll-to-x(x: length) {
+        move_text.scroll-to-x(x);
+    }
 
     HorizontalBox {
         alignment: center;
@@ -40,7 +47,7 @@ export component AppWindow inherits Window {
             refresh_legal_moves(fen, square, clear) => Callbacks.refresh_legal_moves(fen, square, clear);
         }
 
-        MoveText {
+        move_text:= MoveText {
             move_rows: root.move_rows;
             current_move: root.current_move;
             go_to_position(m) => Callbacks.go_to_position(m);

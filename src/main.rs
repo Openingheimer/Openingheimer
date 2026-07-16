@@ -119,74 +119,28 @@ fn update_move_list(ui: &AppWindow, fenboard: FenBoard) -> Vec<SanMoveRow> {
        return moves;
     }
 
-    let mut new_move = complete_black_move_or_get_new(fenboard.clone(), &mut moves, &current_move, variation, new_variation);
+    let new_move = create_ply(&fenboard, &current_move, &mut moves, variation, new_variation);
 
     let san_move = match fenboard.active_color {
         Color::White => new_move.black.clone(),
         Color::Black => new_move.white.clone(),
     };
 
-    let (mut last_move, index) = get_last_move_in_variation(&moves, &current_move, variation);
+    let scroll_to = moves
+        .iter()
+        .position(|x| x.white.id == san_move.id || x.black.id == san_move.id)
+        .unwrap();
 
-    match fenboard.active_color {
-        Color::White => {
-            match new_variation {
-                false => moves[index] = new_move.clone(),
-                true => {
-                     let splice_index = moves
-                            .clone()
-                            .iter()
-                            .position(|x| x.white.id == current_move.id)
-                            .unwrap() + 1;
-
-                    new_move.depth = new_move.depth + 1;
-                    new_move.white = SanMove::default();
-                    new_move.white.san_text = "..".into();
-                    new_move.white.fen = new_move.black.fen.clone();
-                    moves.splice(splice_index..splice_index, [new_move.clone()].into_iter());
-                }
-            }
-        },
-        Color::Black => {
-            last_move.black.next_id = new_move.white.id.clone();
-
-            match new_variation {
-                false => {
-
-                    let splice_index = match moves
-                            .clone()
-                            .iter()
-                            .rposition(|x| {
-                                x.black.parent_branches.iter().any(|b| b == variation) ||
-                                x.white.parent_branches.iter().any(|b| b == variation)
-                            }) {
-                                Some(m) => {
-                                    match variation {
-                                        1 => moves.iter().count(),
-                                        _ => m + 1
-                                    }
-                                }
-                                None => {
-                                    moves.iter().position(|x| x.black.next_id == new_move.white.id).unwrap() + 1
-                                }
-                            };
-                    moves.splice(splice_index..splice_index, [new_move.clone()].into_iter());
-                },
-                true => {
-
-                     let splice_index = moves
-                            .clone()
-                            .iter()
-                            .position(|x| x.white.id == current_move.next_id)
-                            .unwrap() + 1;
-
-                    new_move.depth = new_move.depth + 1;
-                    moves.splice(splice_index..splice_index, [new_move.clone()].into_iter());
-                }
-            }
-        }
+    let row_height = 40.0;
+    let move_text_height = 400.0;
+    let y = -(scroll_to as f32 * row_height) + move_text_height - row_height - 15.0;
+    let right_pad = match new_move.depth {
+        1 => 0.0,
+        _ => 15.0
     };
 
+    handle.invoke_scroll_to_y(y);
+    handle.invoke_scroll_to_x(((new_move.depth - 1) as f32 * -45.0) - right_pad);
     handle.set_current_move(san_move.clone());
     handle.set_last_move_in_variation(san_move.id);
 
