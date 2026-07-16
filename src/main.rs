@@ -72,6 +72,27 @@ fn do_make_move(ui: &Weak<AppWindow>, fen: SharedString, origin: SharedString, d
 
     if move_result.success {
         let handle = ui.clone().unwrap();
+        let current_move = handle.get_current_move();
+
+        let child_moves: Vec<SanMoveRow> = handle.get_move_rows()
+            .iter()
+            .filter(|x| x.white.previous_id == current_move.id || x.black.previous_id == current_move.id)
+            .collect();
+
+        let move_played_already = match move_result.fenboard.active_color.clone() {
+            Color::White => child_moves.iter().find(|x| x.black.san_text == move_result.fenboard.san_move),
+            Color::Black => child_moves.iter().find(|x| x.white.san_text == move_result.fenboard.san_move),
+        };
+
+        if let Some(m) = move_played_already {
+            let san_move = match move_result.fenboard.active_color.clone() {
+                Color::White => &m.black,
+                Color::Black => &m.white,
+            };
+
+            do_go_to_position(ui, san_move.clone());
+            return true;
+        }
 
         let moves = update_move_list(&handle, move_result.fenboard.clone());
 
