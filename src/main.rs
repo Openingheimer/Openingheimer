@@ -17,7 +17,6 @@ use slint::Model;
 use slint::PhysicalSize;
 use slint::SharedString;
 use slint::ToSharedString;
-use slint::VecModel;
 use slint::Weak;
 use std::error::Error;
 use std::rc::Rc;
@@ -87,22 +86,15 @@ fn do_make_move(ui: &Weak<AppWindow>, fen: SharedString, origin: SharedString, d
 fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove) {
     let handle = ui.unwrap();
 
+    if san_move.san_text.is_empty() || san_move.san_text == ".." {
+        return;
+    }
+
     let player_color: Vec<&str> = san_move.fen.split(' ').collect();
 
-    println!("Id {}", san_move.id);
-    println!("Prev {}", san_move.previous_id);
-    println!("Nex {}", san_move.next_id);
-    println!("Variation {}", san_move.variation);
-
-    for x in san_move.parent_branches.iter() {
-        println!("Parent Branch - {}", x);
-    }
-   // println!("Setting Last Move in Var {}", san_move.id);
     handle.set_fen(san_move.fen.clone());
     handle.set_current_move(san_move.clone());
     handle.set_player_color(player_color[1].to_shared_string());
-   // handle.set_last_move_in_variation(san_move.id);
-   // handle.set_active_variation(san_move.variation);
 }
 
 fn update_move_list(ui: &AppWindow, fenboard: FenBoard) -> Vec<SanMoveRow> {
@@ -110,14 +102,11 @@ fn update_move_list(ui: &AppWindow, fenboard: FenBoard) -> Vec<SanMoveRow> {
     let handle = ui_handle.unwrap();
 
     let mut moves: Vec<SanMoveRow> = handle.get_move_rows().iter().collect();
-    let mut new_variation = is_new_variation(&ui, &moves);
+    let new_variation = is_new_variation(&ui, &moves);
     let current_move = handle.get_current_move();
 
     let variation = match new_variation {
-        true => {
-            println!("New Var");
-            next_variation_id()
-        },
+        true => next_variation_id(),
         false => current_move.variation
     };
 
@@ -142,9 +131,7 @@ fn update_move_list(ui: &AppWindow, fenboard: FenBoard) -> Vec<SanMoveRow> {
     match fenboard.active_color {
         Color::White => {
             match new_variation {
-                false => {
-                    moves[index] = new_move.clone()
-                },
+                false => moves[index] = new_move.clone(),
                 true => {
                      let splice_index = moves
                             .clone()
@@ -186,10 +173,11 @@ fn update_move_list(ui: &AppWindow, fenboard: FenBoard) -> Vec<SanMoveRow> {
                     moves.splice(splice_index..splice_index, [new_move.clone()].into_iter());
                 },
                 true => {
+
                      let splice_index = moves
                             .clone()
                             .iter()
-                            .position(|x| x.black.id == current_move.id)
+                            .position(|x| x.white.id == current_move.next_id)
                             .unwrap() + 1;
 
                     new_move.depth = new_move.depth + 1;
