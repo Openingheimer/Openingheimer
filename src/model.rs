@@ -2,6 +2,8 @@
 
 use crate::grand_master::*;
 use crate::fen_master::*;
+use crate::SanMove;
+use crate::SanMoveRow;
 use slint::SharedString;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -170,6 +172,23 @@ pub struct Piece {
 	pub color: Color,
 }
 
+#[derive(Clone)]
+pub struct MoveRequest {
+    pub moves: Vec<SanMoveRow>,
+	pub fenboard: FenBoard,
+    pub current_move: SanMove,
+    pub last_move_in_variation: i32,
+}
+
+#[derive(Clone)]
+pub struct MoveResponse {
+    pub moves: Vec<SanMoveRow>,
+    pub current_move: SanMove,
+    pub last_move_in_variation: i32,
+    pub scroll_x: f32,
+    pub scroll_y: f32,
+}
+
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 static NEXT_VAR_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -180,4 +199,3 @@ pub fn next_id() -> i32 {
 pub fn next_variation_id() -> i32 {
     NEXT_VAR_ID.fetch_add(1, Ordering::Relaxed) as i32
 }
-

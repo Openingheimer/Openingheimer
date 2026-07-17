@@ -1,0 +1,33 @@
+
+import { TextEdit, VerticalBox, Button } from "std-widgets.slint";
+
+export component PgnImport inherits PopupWindow {
+    width: 400px;
+    height: 400px;
+    close-policy: PopupClosePolicy.close-on-click-outside;
+
+    pure callback import_pgn(string);
+    callback close_import();
+
+    VerticalBox {
+        Rectangle {
+            background: white;
+
+            pgn := TextEdit {
+                width: parent.width;
+                height: parent.height;
+                font-size: 14px;
+            }
+        }
+
+        Button {
+            text: "Import";
+            width: 150px;
+            height: 40px;
+            clicked => {
+                import_pgn(pgn.text);
+                close_import();
+            }
+        }
+    }
+}

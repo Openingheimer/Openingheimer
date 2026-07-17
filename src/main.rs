@@ -58,6 +58,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         do_go_to_position(&go_to_position, san_move);
     });
 
+    let import_pgn = ui_handle.clone();
+    ui.global::<Callbacks>().on_import_pgn(move |pgn| {
+
+        let handle = import_pgn.clone().unwrap();
+        let fen = handle.get_fen();
+        println!("PGN {}", pgn);
+
+        do_make_move(&import_pgn, fen, "e2".into(), "e4".into());
+        ()
+    });
+
     ui.run()?;
 
     Ok(())
@@ -71,8 +82,11 @@ fn do_make_move(ui: &Weak<AppWindow>, fen: SharedString, origin: SharedString, d
     let move_result = try_make_move(fen, origin, destination);
 
     if move_result.success {
+
         let handle = ui.clone().unwrap();
         let current_move = handle.get_current_move();
+        let moves: Vec<SanMoveRow> = handle.get_move_rows().iter().collect();
+        let last_move_in_variation = handle.get_last_move_in_variation();
 
         let child_moves: Vec<SanMoveRow> = handle.get_move_rows()
             .iter()
@@ -91,14 +105,30 @@ fn do_make_move(ui: &Weak<AppWindow>, fen: SharedString, origin: SharedString, d
             };
 
             do_go_to_position(ui, san_move.clone());
+
+            let (x, y) = get_scroll_point(moves, current_move.id, m.depth);
+            handle.invoke_scroll_to_y(y);
+            handle.invoke_scroll_to_x(x);
+
             return true;
         }
 
-        let moves = update_move_list(&handle, move_result.fenboard.clone());
+        let move_request = MoveRequest {
+            fenboard: move_result.fenboard.clone(),
+            moves: moves,
+            current_move: current_move,
+            last_move_in_variation: last_move_in_variation
+        };
+
+        let response = update_move_list(move_request.clone());
 
         handle.set_fen(move_result.fenboard.to_fen());
         handle.set_player_color(move_result.fenboard.active_color.as_str().into());
-        handle.set_move_rows(Rc::new(slint::VecModel::from(moves)).into());
+        handle.set_move_rows(Rc::new(slint::VecModel::from(response.moves)).into());
+        handle.set_current_move(response.current_move.clone());
+        handle.set_last_move_in_variation(response.current_move.id);
+        handle.invoke_scroll_to_y(response.scroll_y);
+        handle.invoke_scroll_to_x(response.scroll_x);
     }
 
     move_result.success
@@ -116,65 +146,6 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove) {
     handle.set_fen(san_move.fen.clone());
     handle.set_current_move(san_move.clone());
     handle.set_player_color(player_color[1].to_shared_string());
-}
-
-fn update_move_list(ui: &AppWindow, fenboard: FenBoard) -> Vec<SanMoveRow> {
-    let ui_handle = ui.as_weak();
-    let handle = ui_handle.unwrap();
-
-    let mut moves: Vec<SanMoveRow> = handle.get_move_rows().iter().collect();
-    let new_variation = is_new_variation(&ui, &moves);
-    let current_move = handle.get_current_move();
-
-    let variation = match new_variation {
-        true => next_variation_id(),
-        false => current_move.variation
-    };
-
-    if moves.is_empty() {
-       let first_move = create_first_move(&fenboard, &current_move, next_variation_id());
-       handle.set_current_move(first_move.white.clone());
-       handle.set_last_move_in_variation(first_move.white.id);
-       moves.push(first_move);
-
-       return moves;
-    }
-
-    let new_move = create_ply(&fenboard, &current_move, &mut moves, variation, new_variation);
-
-    let san_move = match fenboard.active_color {
-        Color::White => new_move.black.clone(),
-        Color::Black => new_move.white.clone(),
-    };
-
-    let scroll_to = moves
-        .iter()
-        .position(|x| x.white.id == san_move.id || x.black.id == san_move.id)
-        .unwrap();
-
-    let row_height = 40.0;
-    let move_text_height = 400.0;
-    let y = -(scroll_to as f32 * row_height) + move_text_height - row_height - 15.0;
-    let right_pad = match new_move.depth {
-        1 => 0.0,
-        _ => 15.0
-    };
-
-    handle.invoke_scroll_to_y(y);
-    handle.invoke_scroll_to_x(((new_move.depth - 1) as f32 * -45.0) - right_pad);
-    handle.set_current_move(san_move.clone());
-    handle.set_last_move_in_variation(san_move.id);
-
-    moves
-}
-
-fn is_new_variation(ui: &AppWindow, moves: &Vec<SanMoveRow>) -> bool {
-    let ui_handle = ui.as_weak();
-    let handle = ui_handle.unwrap();
-    let current_move = handle.get_current_move();
-    let last_move_in_variation = handle.get_last_move_in_variation();
-
-    (current_move.id != last_move_in_variation || moves.is_empty()) && current_move.next_id != 0
 }
 
 fn do_check_legal_square(ui: &Weak<AppWindow>, square: SharedString) -> bool {

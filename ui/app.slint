@@ -2,6 +2,7 @@ import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 import { Chessboard } from "chessboard.slint";
 import { MoveText } from "movetext.slint";
 import { SanMove, SanMoveRow } from "model.slint";
+import { PgnImport } from "pgnimport.slint";
 
 export global Callbacks {
     pure callback piece_from_fen(string, int) -> string;
@@ -10,11 +11,13 @@ export global Callbacks {
     pure callback check_legal_move(string) -> bool;
     pure callback refresh_legal_moves(string, string, bool);
     pure callback go_to_position(SanMove);
+    pure callback import_pgn(string);
 }
 
 export component AppWindow inherits Window {
     title: "Openingheimer";
     full-screen: is_full_screen;
+    forward-focus: scope;
 
     in-out property <string> fen:"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     in-out property <string> player_color;
@@ -32,6 +35,10 @@ export component AppWindow inherits Window {
         move_text.scroll-to-x(x);
     }
 
+    public function close_import() {
+        popup.close()
+    }
+
     HorizontalBox {
         alignment: center;
         padding-top: 150px;
@@ -47,10 +54,22 @@ export component AppWindow inherits Window {
             refresh_legal_moves(fen, square, clear) => Callbacks.refresh_legal_moves(fen, square, clear);
         }
 
-        move_text:= MoveText {
+        move_text := MoveText {
             move_rows: root.move_rows;
             current_move: root.current_move;
             go_to_position(m) => Callbacks.go_to_position(m);
+        }
+
+        popup := PgnImport {
+            import_pgn(pgn) => Callbacks.import_pgn(pgn);
+            close_import => close_import();
+        }
+    }
+
+    scope := FocusScope {
+        KeyBinding {
+            keys: @keys(C);
+            activated => { popup.show(); }
         }
     }
 }

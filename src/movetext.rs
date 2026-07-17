@@ -5,6 +5,54 @@ use slint::VecModel;
 
 use crate::{SanMoveRow, SanMove, model::*};
 
+pub fn update_move_list(move_request: MoveRequest) -> MoveResponse {
+
+    let mut moves = move_request.moves.clone();
+    let current_move = move_request.current_move.clone();
+    let fenboard = move_request.fenboard.clone();
+    let last_move_in_variation = move_request.last_move_in_variation.clone();
+
+    let new_variation = (current_move.id != last_move_in_variation || moves.is_empty()) && current_move.next_id != 0;
+
+    let variation = match new_variation {
+        true => next_variation_id(),
+        false => current_move.variation
+    };
+
+    if moves.is_empty() {
+       let first_move = create_first_move(&fenboard, &current_move, next_variation_id());
+
+       moves.push(first_move.clone());
+
+       let response = MoveResponse {
+            current_move: first_move.white.clone(),
+            moves: moves,
+            last_move_in_variation: first_move.white.id,
+            scroll_y: 0.0,
+            scroll_x: 0.0,
+       };
+
+       return response;
+    }
+
+    let new_move = create_ply(&fenboard, &current_move, &mut moves, variation, new_variation);
+
+    let san_move = match fenboard.active_color {
+        Color::White => new_move.black.clone(),
+        Color::Black => new_move.white.clone(),
+    };
+
+    let (x, y) = get_scroll_point(moves.clone(), current_move.id, new_move.depth);
+
+    MoveResponse {
+            current_move: san_move.clone(),
+            moves: moves,
+            last_move_in_variation: san_move.id,
+            scroll_x: x,
+            scroll_y: y,
+       }
+}
+
 pub fn create_ply(fenboard: &FenBoard, current_move: &SanMove, moves: &mut Vec<SanMoveRow>, variation: i32, new_variation: bool) -> SanMoveRow {
 
     let mut new_move = complete_black_move_or_get_new(fenboard.clone(), moves, &current_move, variation, new_variation);
@@ -214,3 +262,23 @@ pub fn create_first_move(fenboard: &FenBoard, current_move: &SanMove,  variation
         black: black
     }
 }
+
+ pub fn get_scroll_point(moves: Vec<SanMoveRow>, current_move_id: i32, depth: i32) -> (f32, f32) {
+
+    let scroll_to = moves.clone()
+        .iter()
+        .position(|x| x.white.id == current_move_id || x.black.id == current_move_id)
+        .unwrap() + 1;
+
+    let row_height = 40.0;
+    let move_text_height = 450.0;
+    let right_pad = match depth.clone() {
+        1 => 0.0,
+        _ => 15.0
+    };
+
+    let y = -(scroll_to as f32 * row_height) + move_text_height - row_height - 15.0;
+    let x = ((depth - 1) as f32 * -45.0) - right_pad;
+
+    (x, y)
+ }
