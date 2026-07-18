@@ -18,4 +18,10 @@ export struct SanMove {
     parent_branches: [int],
 }
 
-export struct SanMoveRow { turn: int, depth: int, white: SanMove, black: SanMove }
+export struct SanMoveRow {
+    white: SanMove,
+    black: SanMove,
+    turn: int,
+    depth: int,
+    variation: int,
+}

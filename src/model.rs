@@ -4,7 +4,9 @@ use crate::grand_master::*;
 use crate::fen_master::*;
 use crate::SanMove;
 use crate::SanMoveRow;
+use shakmaty::Chess;
 use slint::SharedString;
+use slint::ToSharedString;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub trait PieceBrain {
@@ -187,6 +189,16 @@ pub struct MoveResponse {
     pub last_move_in_variation: i32,
     pub scroll_x: f32,
     pub scroll_y: f32,
+}
+
+#[derive(Clone)]
+#[derive(Default)]
+pub struct MoveNode {
+    pub san: String,
+    pub position: Chess,
+    pub previous: Option<usize>,
+    pub next: Option<usize>,
+    pub variations: Vec<usize>,
 }
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);

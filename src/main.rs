@@ -7,11 +7,13 @@ mod fen_master;
 mod grand_master;
 mod model;
 mod movetext;
+mod pgn_import;
 
 use crate::fen_master::*;
 use crate::grand_master::*;
 use crate::model::*;
 use crate::movetext::*;
+use crate::pgn_import::*;
 use i_slint_backend_winit::WinitWindowAccessor;
 use slint::Model;
 use slint::PhysicalSize;
@@ -40,7 +42,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let make_move_weak = ui_handle.clone();
     ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
-        do_make_move(&make_move_weak, fen, origin, destination)
+
+        let handle = make_move_weak.unwrap();
+
+        do_make_move(fen, origin, destination)
+
+
+        // handle.set_fen(move_result.fenboard.to_fen());
+        // handle.set_player_color(move_result.fenboard.active_color.as_str().into());
+        // handle.set_move_rows(Rc::new(slint::VecModel::from(response.moves)).into());
+        // handle.set_current_move(response.current_move.clone());
+        // handle.set_last_move_in_variation(response.current_move.id);
+        // handle.invoke_scroll_to_y(response.scroll_y);
+        // handle.invoke_scroll_to_x(response.scroll_x);
     });
 
     let is_legal_weak = ui_handle.clone();
@@ -60,13 +74,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let import_pgn = ui_handle.clone();
     ui.global::<Callbacks>().on_import_pgn(move |pgn| {
-
         let handle = import_pgn.clone().unwrap();
-        let fen = handle.get_fen();
-        println!("PGN {}", pgn);
 
-        do_make_move(&import_pgn, fen, "e2".into(), "e4".into());
-        ()
+        let moves = read_pgn(pgn.into());
+
+        // handle.set_move_rows(Rc::new(slint::VecModel::from(moves)).into());
     });
 
     ui.run()?;
@@ -74,64 +86,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn do_make_move(ui: &Weak<AppWindow>, fen: SharedString, origin: SharedString, destination: SharedString) -> bool {
-    if origin == "" || destination == "" {
-        return false;
-    }
+fn do_make_move(fen: SharedString, origin: SharedString, destination: SharedString) -> bool {
 
-    let move_result = try_make_move(fen, origin, destination);
-
-    if move_result.success {
-
-        let handle = ui.clone().unwrap();
-        let current_move = handle.get_current_move();
-        let moves: Vec<SanMoveRow> = handle.get_move_rows().iter().collect();
-        let last_move_in_variation = handle.get_last_move_in_variation();
-
-        let child_moves: Vec<SanMoveRow> = handle.get_move_rows()
-            .iter()
-            .filter(|x| x.white.previous_id == current_move.id || x.black.previous_id == current_move.id)
-            .collect();
-
-        let move_played_already = match move_result.fenboard.active_color.clone() {
-            Color::White => child_moves.iter().find(|x| x.black.san_text == move_result.fenboard.san_move),
-            Color::Black => child_moves.iter().find(|x| x.white.san_text == move_result.fenboard.san_move),
-        };
-
-        if let Some(m) = move_played_already {
-            let san_move = match move_result.fenboard.active_color.clone() {
-                Color::White => &m.black,
-                Color::Black => &m.white,
-            };
-
-            do_go_to_position(ui, san_move.clone());
-
-            let (x, y) = get_scroll_point(moves, current_move.id, m.depth);
-            handle.invoke_scroll_to_y(y);
-            handle.invoke_scroll_to_x(x);
-
-            return true;
-        }
-
-        let move_request = MoveRequest {
-            fenboard: move_result.fenboard.clone(),
-            moves: moves,
-            current_move: current_move,
-            last_move_in_variation: last_move_in_variation
-        };
-
-        let response = update_move_list(move_request.clone());
-
-        handle.set_fen(move_result.fenboard.to_fen());
-        handle.set_player_color(move_result.fenboard.active_color.as_str().into());
-        handle.set_move_rows(Rc::new(slint::VecModel::from(response.moves)).into());
-        handle.set_current_move(response.current_move.clone());
-        handle.set_last_move_in_variation(response.current_move.id);
-        handle.invoke_scroll_to_y(response.scroll_y);
-        handle.invoke_scroll_to_x(response.scroll_x);
-    }
-
-    move_result.success
+    true
 }
 
 fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove) {
