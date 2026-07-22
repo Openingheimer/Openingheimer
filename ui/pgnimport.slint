@@ -17,6 +17,10 @@ export component PgnImport inherits PopupWindow {
                 width: parent.width;
                 height: parent.height;
                 font-size: 14px;
+
+                init => {
+                    self.focus();
+                }
             }
         }
 

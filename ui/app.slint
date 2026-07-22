@@ -69,7 +69,7 @@ export component AppWindow inherits Window {
     scope := FocusScope {
         KeyBinding {
             keys: @keys(C);
-            activated => { popup.show(); }
+            activated => popup.show();
         }
     }
 }

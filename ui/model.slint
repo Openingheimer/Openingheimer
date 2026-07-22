@@ -10,12 +10,11 @@ export struct BoardSquare {
 
 export struct SanMove {
     id: int,
-    variation: int,
     san_text: string,
     fen: string,
     previous_id: int,
     next_id: int,
-    parent_branches: [int],
+    variations: [int],
 }
 
 export struct SanMoveRow {
@@ -23,5 +22,4 @@ export struct SanMoveRow {
     black: SanMove,
     turn: int,
     depth: int,
-    variation: int,
 }

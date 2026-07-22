@@ -161,8 +161,8 @@ fn is_castling(fenboard: &mut FenBoard) -> bool {
 	for right in castle_rights{
 
 		can_castle = match fenboard.from_piece.clone().unwrap().color {
-			Color::White => safe_to_castle(fenboard.clone(), right, Color::White),
-			Color::Black => safe_to_castle(fenboard.clone(), right, Color::Black)
+			Color::White => is_legal_castle(fenboard.clone(), right, Color::White),
+			Color::Black => is_legal_castle(fenboard.clone(), right, Color::Black)
 		};
 
 		if can_castle {
@@ -174,11 +174,11 @@ fn is_castling(fenboard: &mut FenBoard) -> bool {
 	can_castle
 }
 
-fn safe_to_castle(fenboard: FenBoard, castle_type: char, color: Color) -> bool {
+fn is_legal_castle(fenboard: FenBoard, castle_type: char, color: Color) -> bool {
 
 	let attacked_squares = get_squares_under_fire_for(fenboard.to_fen(), &color);
 
-	let (safe_squares, castle_path,  attemping_castle)	= match castle_type {
+	let (safe_squares, castle_path, attemping_castle)	= match castle_type {
 			'K' => (["e1", "f1", "g1"], ["f1", "g1", "g1"], fenboard.to_coords == "g1" && color == Color::White),
 			'Q' => (["e1", "d1", "c1"], ["b1", "c1", "d1"], fenboard.to_coords == "c1" && color == Color::White),
 			'k' => (["e8", "f8", "g8"], ["f8", "g8", "g8"], fenboard.to_coords == "g8" && color == Color::Black),

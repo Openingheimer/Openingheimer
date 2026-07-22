@@ -1,6 +1,8 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(dead_code)]
+#![allow(unused_variables)]
+
 slint::include_modules!();
 
 mod fen_master;
@@ -10,9 +12,7 @@ mod movetext;
 mod pgn_import;
 
 use crate::fen_master::*;
-use crate::grand_master::*;
 use crate::model::*;
-use crate::movetext::*;
 use crate::pgn_import::*;
 use i_slint_backend_winit::WinitWindowAccessor;
 use slint::Model;
@@ -76,9 +76,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.global::<Callbacks>().on_import_pgn(move |pgn| {
         let handle = import_pgn.clone().unwrap();
 
-        let moves = read_pgn(pgn.into());
+        let moves = read_as_move_text(pgn.into());
 
-        // handle.set_move_rows(Rc::new(slint::VecModel::from(moves)).into());
+        handle.set_move_rows(Rc::new(slint::VecModel::from(moves)).into());
     });
 
     ui.run()?;

@@ -6,7 +6,6 @@ use crate::SanMove;
 use crate::SanMoveRow;
 use shakmaty::Chess;
 use slint::SharedString;
-use slint::ToSharedString;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub trait PieceBrain {
@@ -189,6 +188,19 @@ pub struct MoveResponse {
     pub last_move_in_variation: i32,
     pub scroll_x: f32,
     pub scroll_y: f32,
+}
+
+#[derive(Clone)]
+pub struct MoveReader {
+    pub moves: Vec<MoveNode>,
+    pub san_move_rows: Vec<SanMoveRow>,
+    pub current: Option<usize>,
+    pub pick_up_position_from: Vec<usize>,
+    pub pick_up_turn_from: Vec<i32>,
+    pub turn_number: i32,
+    pub depth: i32,
+    pub is_new_var: bool,
+    pub is_end_var: bool,
 }
 
 #[derive(Clone)]
