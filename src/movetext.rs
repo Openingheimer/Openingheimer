@@ -146,7 +146,7 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
     }
  }
 
- fn get_variations(variations: &Vec<usize>) -> ModelRc<i32> {
+ pub fn get_variations(variations: &Vec<usize>) -> ModelRc<i32> {
     Rc::new(slint::VecModel::from(variations
                     .iter()
                     .map(|&v| v as i32)

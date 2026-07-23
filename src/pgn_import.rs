@@ -1,5 +1,4 @@
 
-use crate::SanMoveRow;
 use crate::model::MoveReader;
 use crate::model::MoveNode;
 use crate::movetext::*;
@@ -11,19 +10,7 @@ use shakmaty::Chess;
 use pgn_reader::{Visitor, Reader, SanPlus, Skip, Nag };
 use slint::ToSharedString;
 
-pub fn read_pgn(pgn: String) -> Vec<MoveNode> {
-    let reader = parse_pgn(pgn);
-
-    reader.moves
-}
-
-pub fn read_as_move_text(pgn: String) -> Vec<SanMoveRow> {
-    let reader = parse_pgn(pgn);
-
-    reader.san_move_rows
-}
-
-fn parse_pgn(pgn: String) -> MoveReader {
+pub fn parse_pgn(pgn: String) -> MoveReader {
     let mut visitor = MoveReader {
         moves: [].to_vec(),
         current: None,
@@ -51,11 +38,14 @@ impl Visitor for MoveReader {
     fn san(&mut self, _movetext: &mut Self::Movetext, san_plus: SanPlus) -> ControlFlow<Self::Output> {
 
         let mut position = match self.current {
-            Some(cm) => {
+            Some(cm) if self.is_new_var == false => {
                 self.moves[cm].next = Some(self.moves.len());
                 self.moves[cm].position.clone()
             }
-            None => Chess::new(),
+            Some(cm) => {
+                self.moves[cm].position.clone()
+            },
+            _ => Chess::new(),
         };
 
         let next_move = san_plus.san.to_move(&position).unwrap();

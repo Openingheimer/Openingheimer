@@ -191,6 +191,7 @@ pub struct MoveResponse {
 }
 
 #[derive(Clone)]
+#[derive(Default)]
 pub struct MoveReader {
     pub moves: Vec<MoveNode>,
     pub san_move_rows: Vec<SanMoveRow>,
@@ -211,6 +212,16 @@ pub struct MoveNode {
     pub previous: Option<usize>,
     pub next: Option<usize>,
     pub variations: Vec<usize>,
+}
+
+#[derive(Clone)]
+#[derive(Default)]
+pub struct PuzzleMaster {
+    pub move_reader: MoveReader,
+    pub next: Option<usize>,
+    pub fen: SharedString,
+    pub start_square: SharedString,
+    pub end_square: SharedString,
 }
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);

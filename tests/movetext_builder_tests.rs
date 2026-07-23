@@ -6,7 +6,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn create_first_ply() {
-        let result = read_as_move_text("1. e4".into());
+        let result = parse_pgn("1. e4".into()).san_move_rows;
 
         assert_eq!(result.iter().count(), 1);
 
@@ -22,7 +22,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn create_first_move() {
-        let result = read_as_move_text("1. e4 e5".into());
+        let result = parse_pgn("1. e4 e5".into()).san_move_rows;
 
         assert_eq!(result.iter().count(), 1);
         assert_eq!(result[0].white.san_text, "e4");
@@ -38,7 +38,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn create_second_move() {
-        let result = read_as_move_text("1. e4 e5 2. Nf3 Nf6".into());
+        let result = parse_pgn("1. e4 e5 2. Nf3 Nf6".into()).san_move_rows;
 
         assert_eq!(result.iter().count(), 2);
         assert_eq!(result[0].black.san_text, "e5");
@@ -60,7 +60,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn handle_child_variation_black() {
-        let result = read_as_move_text("1. e4 c5 (1... h5 2. h4 d5) *".into());
+        let result = parse_pgn("1. e4 c5 (1... h5 2. h4 d5) *".into()).san_move_rows;
 
         assert_eq!(result.iter().count(), 3);
         assert_eq!(result[1].black.san_text, "h5");
@@ -79,7 +79,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn handle_child_variation_white() {
-        let result = read_as_move_text("1. e4 e5 2. Nf3 (2. d4) *".into());
+        let result = parse_pgn("1. e4 e5 2. Nf3 (2. d4) *".into()).san_move_rows;
 
         assert_eq!(result.iter().count(), 3);
         assert_eq!(result[1].white.san_text, "Nf3");
@@ -95,7 +95,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn handle_child_variation_continuations_black_var_start() {
-        let result = read_as_move_text("1. e4 c5 (1... h5 2. h4 g5 3. g4) 2. Nf3 *".into());
+        let result = parse_pgn("1. e4 c5 (1... h5 2. h4 g5 3. g4) 2. Nf3 *".into()).san_move_rows;
 
         assert_eq!(result.iter().count(), 5);
         assert_eq!(result[4].white.san_text, "Nf3");
@@ -106,7 +106,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn handle_child_variation_continuations_white_var_start() {
-        let result = read_as_move_text("1. e4 c5 2. Nf3 (2. Bc4 Nf6 3. d4 cxd4) 2... Nc6 *".into());
+        let result = parse_pgn("1. e4 c5 2. Nf3 (2. Bc4 Nf6 3. d4 cxd4) 2... Nc6 *".into()).san_move_rows;
 
         assert_eq!(result.iter().count(), 5);
         assert_eq!(result[4].black.san_text, "Nc6");
@@ -119,7 +119,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn handle_multiple_variations_at_same_move_black_var_start() {
-        let result = read_as_move_text("1. e4 c5 (1... h5 2. h4 g5) (1... d5 2. exd5) 2. Bc4 *".into());
+        let result = parse_pgn("1. e4 c5 (1... h5 2. h4 g5) (1... d5 2. exd5) 2. Bc4 *".into()).san_move_rows;
         let c5 = result[0].black.clone();
 
         assert_eq!(result.iter().count(), 6);
@@ -132,7 +132,7 @@ mod move_text_builder_tests {
 
     #[test]
     fn handle_multiple_variations_at_same_move_white_var_start() {
-        let result = read_as_move_text("1. e4 c5 2. Bc4 (2. Nf3 d5) (2. Bb5 Nc6 3. f4) 2... h5 *".into());
+        let result = parse_pgn("1. e4 c5 2. Bc4 (2. Nf3 d5) (2. Bb5 Nc6 3. f4) 2... h5 *".into()).san_move_rows;
 
         let bc4 = result[1].white.clone();
 
@@ -144,9 +144,9 @@ mod move_text_builder_tests {
         assert_eq!(bc4.next_id, 8);
     }
 
-      #[test]
+    #[test]
     fn handle_nested_child_variations() {
-        let result = read_as_move_text("1. e4 c5 (1... h5 2. h4 (2. d4 d5 (2... a5) 3. e5) 2... Nc6) 2. Na3 *".into());
+        let result = parse_pgn("1. e4 c5 (1... h5 2. h4 (2. d4 d5 (2... a5) 3. e5) 2... Nc6) 2. Na3 *".into()).san_move_rows;
         let c5 = &result[0].black;
         let h4 = &result[2].white;
         let d4 = &result[3].white;
@@ -169,5 +169,13 @@ mod move_text_builder_tests {
         assert_eq!(a5.next_id, -1);
         assert_eq!(na3.san_text, "Na3");
         assert_eq!(na3.previous_id, 1);
+    }
+
+    #[test]
+    fn set_white_next_id_correctly() {
+        let result = parse_pgn("1. e4 c5 2. Nf3 Nc6 (2... d6) (2... g6) 3. Bc4 *".into()).san_move_rows;
+
+        assert_eq!(result[1].white.san_text, "Nf3");
+        assert_eq!(result[1].white.next_id, 3);
     }
 }

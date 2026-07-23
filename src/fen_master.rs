@@ -354,6 +354,10 @@ pub fn get_king_square(fen64: SharedString, color: &Color) -> SharedString {
 
 pub fn get_piece_color_from_square(fen: SharedString, square: SharedString) -> SharedString {
 
+	if square == ""{
+		return "".into();
+	}
+
 	let square64 = square_to_index64(square.clone());
 
     let piece_code = get_piece_code_from_fen(fen.into(), square64);

@@ -10,10 +10,12 @@ mod grand_master;
 mod model;
 mod movetext;
 mod pgn_import;
+mod puzzle_master;
 
 use crate::fen_master::*;
 use crate::model::*;
 use crate::pgn_import::*;
+use crate::puzzle_master::*;
 use i_slint_backend_winit::WinitWindowAccessor;
 use slint::Model;
 use slint::PhysicalSize;
@@ -22,17 +24,20 @@ use slint::ToSharedString;
 use slint::Weak;
 use std::error::Error;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let ui = AppWindow::new()?;
     let ui_handle = ui.as_weak();
+
     //set_full_screen(&ui)?;
 
-    let fen = ui_handle.clone().unwrap().get_fen();
-
+    let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     let player_turn = fen.split(' ').nth(1).unwrap();
-
+    ui.set_fen(fen.into());
     ui.set_player_color(player_turn.into());
+
+    let puzzle_master = Rc::new(RefCell::new(seed_position(&ui_handle)));
 
     ui.global::<Callbacks>().on_piece_from_fen(|fen, index|
         get_piece_code_from_fen(fen, index).into());
@@ -41,20 +46,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         get_piece_color_from_square(fen, square));
 
     let make_move_weak = ui_handle.clone();
+    let puzzle_master_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
 
         let handle = make_move_weak.unwrap();
 
-        do_make_move(fen, origin, destination)
+        let mut pm = puzzle_master_clone.borrow_mut();
 
+        pm.fen = fen;
+        pm.start_square = origin;
+        pm.end_square = destination;
 
-        // handle.set_fen(move_result.fenboard.to_fen());
-        // handle.set_player_color(move_result.fenboard.active_color.as_str().into());
-        // handle.set_move_rows(Rc::new(slint::VecModel::from(response.moves)).into());
-        // handle.set_current_move(response.current_move.clone());
-        // handle.set_last_move_in_variation(response.current_move.id);
-        // handle.invoke_scroll_to_y(response.scroll_y);
-        // handle.invoke_scroll_to_x(response.scroll_x);
+        let (success,san_move) = do_make_move(&mut pm);
+
+       if success {
+            do_go_to_position(&make_move_weak, san_move);
+            // handle.invoke_scroll_to_y(response.scroll_y);
+            // handle.invoke_scroll_to_x(response.scroll_x);
+       }
+
+        success
     });
 
     let is_legal_weak = ui_handle.clone();
@@ -68,7 +79,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     let go_to_position = ui_handle.clone();
+    let puzzle_master_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_go_to_position(move |san_move| {
+
+        let mut pm = puzzle_master_clone.borrow_mut();
+        pm.next = Some(san_move.next_id as usize);
+
         do_go_to_position(&go_to_position, san_move);
     });
 
@@ -76,9 +92,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.global::<Callbacks>().on_import_pgn(move |pgn| {
         let handle = import_pgn.clone().unwrap();
 
-        let moves = read_as_move_text(pgn.into());
+        let reader = parse_pgn(pgn.into());
 
-        handle.set_move_rows(Rc::new(slint::VecModel::from(moves)).into());
+        handle.set_move_rows(Rc::new(slint::VecModel::from(reader.san_move_rows)).into());
     });
 
     ui.run()?;
@@ -86,9 +102,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn do_make_move(fen: SharedString, origin: SharedString, destination: SharedString) -> bool {
+fn seed_position(ui: &Weak<AppWindow>) -> PuzzleMaster {
 
-    true
+    let handle = ui.unwrap();
+    let reader = parse_pgn("1. e4 c5 2. Nf3 Nc6 (2... d6 3. Nc3) (2... g6 3. g3) 3. Bc4 *".into());
+
+    handle.set_current_move(SanMove{ id: -2, ..Default::default() });
+    handle.set_move_rows(Rc::new(slint::VecModel::from(reader.san_move_rows.clone())).into());
+
+    PuzzleMaster {
+         move_reader: reader,
+         next: Some(0),
+         ..Default::default()
+    }
+}
+
+fn do_make_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove) {
+
+    check_move(puzzle_master)
 }
 
 fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove) {
@@ -134,7 +165,7 @@ fn do_refresh_legal_moves(ui: &Weak<AppWindow>, fen: SharedString, square: Share
 fn set_full_screen(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
     let ui_weak = ui.as_weak();
     let handle = ui_weak.unwrap();
-    handle.set_is_full_screen(true);
+
     slint::invoke_from_event_loop(move || {
         if let Some(ui) = ui_weak.upgrade() {
             let window = ui.window();
@@ -143,7 +174,7 @@ fn set_full_screen(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
                     let size = monitor.size();
                     window.set_size(PhysicalSize::new(size.width, size.height));
                     window.set_maximized(true);
-                    //window.set_fullscreen(true);
+                   //window.set_fullscreen(true);
                 }
             });
         }
