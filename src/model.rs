@@ -216,6 +216,8 @@ pub struct MoveNode {
     pub variations: Vec<usize>,
     pub parent_line: Option<usize>,
     pub variation_id: i32,
+    pub from_square: String,
+    pub to_square: String,
 }
 
 #[derive(Clone)]

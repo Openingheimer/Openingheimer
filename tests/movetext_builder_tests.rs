@@ -64,7 +64,7 @@ mod move_text_builder_tests {
 
         assert_eq!(result.iter().count(), 3);
         assert_eq!(result[1].black.san_text, "h5");
-        assert_eq!(result[1].white.san_text, "..");
+        assert_eq!(result[1].white.san_text, "");
         assert_eq!(result[1].white.next_id, -1);
         assert_eq!(result[1].turn, 1);
         assert_eq!(result[1].turn, 1);
@@ -111,7 +111,7 @@ mod move_text_builder_tests {
         assert_eq!(result.iter().count(), 5);
         assert_eq!(result[4].black.san_text, "Nc6");
         assert_eq!(result[4].black.previous_id, 2);
-        assert_eq!(result[4].white.san_text, "..");
+        assert_eq!(result[4].white.san_text, "");
         assert_eq!(result[1].white.san_text, "Nf3");
         assert_eq!(result[1].white.next_id, 7);
         assert_eq!(result[1].white.variations.iter().count(), 1);

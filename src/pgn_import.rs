@@ -63,6 +63,8 @@ impl Visitor for MoveReader {
             variations: Vec::new(),
             parent_line: self.parent_lines.iter().last().copied(),
             variation_id: self.variation_ids.iter().last().copied().unwrap(),
+            from_square: next_move.from().unwrap().to_string(),
+            to_square: next_move.to().to_string(),
         };
 
         self.current = Some(self.moves.len());

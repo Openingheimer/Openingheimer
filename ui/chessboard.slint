@@ -14,6 +14,8 @@ export component Chessboard {
 
     property <bool> debug_legal_moves: false;
     in-out property <[string]> legal_moves;
+    in-out property <string> last_move_from;
+    in-out property <string> last_move_to;
 
     property <length> boardpx: BOARD_SIZE * 1px;
     property <length> cellSize: (boardpx / 8);
@@ -24,6 +26,7 @@ export component Chessboard {
     property <color> hightlight: #ffff33;
 
     property <string> active_coords;
+
     property <string> piece_in_hand_color;
     property <string> dropped_piece_coords;
     property <bool> is_grabbing_piece;
@@ -68,7 +71,9 @@ export component Chessboard {
                 width: cellSize;
                 height: cellSize;
                 background: debugging_legal_moves() ? green :
-                    active_coords == board_square.coords && board_square.has_piece
+                    ((active_coords == board_square.coords && board_square.has_piece) ||
+                    last_move_from == board_square.coords ||
+                    last_move_to == board_square.coords)
                     ? board_square.square_color.mix(hightlight, 0.5)
                     : board_square.square_color;
 

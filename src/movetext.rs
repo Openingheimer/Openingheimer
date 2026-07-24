@@ -1,6 +1,6 @@
 
 use crate::fen_master::*;
-use crate::{SanMoveRow, SanMove, model::*};
+use crate::{SanMoveRow, SanMove, model::MoveReader, model::MoveNode};
 use slint::{Model, ModelRc, VecModel};
 use slint::{ToSharedString};
 use std::rc::Rc;
@@ -78,6 +78,8 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                parent_line: current_move.parent_line.map(|x| x as i32).unwrap_or(-1),
                hide_move: true,
                variation_id: current_move.variation_id,
+               from_square: current_move.from_square.to_shared_string(),
+               to_square: current_move.to_square.to_shared_string(),
             };
 
             match reader.is_new_var {
@@ -143,6 +145,8 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
             parent_line: current_move.parent_line.map(|x| x as i32).unwrap_or(-1),
             hide_move: true,
             variation_id: current_move.variation_id,
+            from_square: current_move.from_square.to_shared_string(),
+            to_square: current_move.to_square.to_shared_string(),
         },
         black: empty_san_move(),
         depth: reader.depth,
@@ -168,24 +172,28 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
         parent_line: -1,
         hide_move: true,
         variation_id: -1,
+        from_square: "".into(),
+        to_square: "".into(),
     }
  }
 
- pub fn get_scroll_point(moves: Vec<SanMoveRow>, current_move_id: i32, depth: i32) -> (f32, f32) {
+ pub fn get_scroll_point(moves: Vec<SanMoveRow>, current_move_id: i32) -> (f32, f32) {
 
     let scroll_to = moves.clone()
         .iter()
         .position(|x| x.white.id == current_move_id || x.black.id == current_move_id)
-        .unwrap() + 1;
+        .unwrap();
+
+    let depth = moves[scroll_to].depth;
 
     let row_height = 40.0;
-    let move_text_height = 450.0;
+
     let right_pad = match depth.clone() {
         1 => 0.0,
         _ => 15.0
     };
 
-    let y = -(scroll_to as f32 * row_height) + move_text_height - row_height - 15.0;
+    let y = -(scroll_to as f32 * row_height) + 20.0;
     let x = ((depth - 1) as f32 * -45.0) - right_pad;
 
     (x, y)

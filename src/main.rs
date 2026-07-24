@@ -16,6 +16,7 @@ use crate::fen_master::*;
 use crate::model::*;
 use crate::pgn_import::*;
 use crate::puzzle_master::*;
+use crate::movetext::*;
 use i_slint_backend_winit::WinitWindowAccessor;
 use slint::Model;
 use slint::PhysicalSize;
@@ -55,15 +56,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut pm = puzzle_master_clone.borrow_mut();
 
         pm.fen = fen;
-        pm.start_square = origin;
-        pm.end_square = destination;
+        pm.start_square = origin.clone();
+        pm.end_square = destination.clone();
 
         let (success, san_move, finished_line, finished_line_move) = do_make_move(&mut pm);
 
        if success {
             do_go_to_position(&make_move_weak, san_move, finished_line, finished_line_move);
-            // handle.invoke_scroll_to_y(response.scroll_y);
-            // handle.invoke_scroll_to_x(response.scroll_x);
        }
 
         success
@@ -171,6 +170,9 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: boo
         return;
     }
 
+     handle.set_last_move_from(san_move.from_square.clone());
+     handle.set_last_move_to(san_move.to_square.clone());
+
     let player_color: Vec<&str> = san_move.fen.split(' ').collect();
     let move_rows = handle.get_move_rows();
 
@@ -215,6 +217,11 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: boo
             handle.set_move_rows(Rc::new(slint::VecModel::from(moves.clone())).into());
         }
     }
+
+    let scroll_point = get_scroll_point(move_rows.iter().collect(), san_move.id);
+
+    handle.invoke_scroll_to_x(scroll_point.0);
+    handle.invoke_scroll_to_y(scroll_point.1);
 
     handle.set_fen(san_move.fen.clone());
     handle.set_current_move(san_move.clone());

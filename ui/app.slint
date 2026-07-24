@@ -27,6 +27,8 @@ export component AppWindow inherits Window {
     in-out property <[string]> legal_moves;
     in-out property <bool> is_full_screen: false;
     in-out property <SanMove> current_move;
+    in-out property <string> last_move_from;
+    in-out property <string> last_move_to;
     in-out property <int> last_move_in_variation;
     in-out property <[PgnItem]> openings;
 
@@ -54,6 +56,8 @@ export component AppWindow inherits Window {
             fen: root.fen;
             player_color: root.player_color;
             legal_moves: root.legal_moves;
+            last_move_from: root.last_move_from;
+            last_move_to: root.last_move_to;
             piece_from_fen(f, i) => Callbacks.piece_from_fen(f, i);
             make_move(fen, start_square, end_square) => Callbacks.make_move(fen, start_square, end_square);
             color_on_square(f, square) => Callbacks.color_on_square(f, square);

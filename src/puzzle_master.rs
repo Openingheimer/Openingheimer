@@ -78,5 +78,7 @@ use crate::SanMove;
 		parent_line: move_node.parent_line.map(|x| x as i32).unwrap_or(-1),
 		hide_move: true,
 		variation_id: move_node.variation_id,
+		from_square: move_node.from_square.into(),
+		to_square: move_node.to_square.into(),
 	}
  }
