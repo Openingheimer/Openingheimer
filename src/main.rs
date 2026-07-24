@@ -89,10 +89,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     let import_pgn = ui_handle.clone();
+    let puzzle_master_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_import_pgn(move |pgn| {
         let handle = import_pgn.clone().unwrap();
 
         let reader = parse_pgn(pgn.into());
+
+       *puzzle_master_clone.borrow_mut() = PuzzleMaster {
+            move_reader: reader.clone(),
+            next: Some(0),
+            ..Default::default()
+        };
 
         handle.set_move_rows(Rc::new(slint::VecModel::from(reader.san_move_rows)).into());
     });

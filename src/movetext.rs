@@ -89,7 +89,7 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                         },
                         true => {
                            let new_row = SanMoveRow {
-                                white: empty_san_move("..".into()),
+                                white: empty_san_move(),
                                 black: black_move,
                                 turn: reader.turn_number,
                                 depth: reader.depth,
@@ -102,7 +102,7 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                 },
                 true =>{
                     let new_row = SanMoveRow {
-                            white: empty_san_move("..".into()),
+                            white: empty_san_move(),
                             black: black_move,
                             turn: reader.turn_number,
                             depth: reader.depth,
@@ -144,7 +144,7 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
             hide_move: true,
             variation_id: current_move.variation_id,
         },
-        black: empty_san_move("".into()),
+        black: empty_san_move(),
         depth: reader.depth,
         turn: reader.turn_number,
     }
@@ -157,13 +157,13 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                     .collect::<Vec<i32>>())).into()
  }
 
- fn empty_san_move(san: String) -> SanMove {
+ fn empty_san_move() -> SanMove {
     SanMove {
         id: -1,
         next_id: -1,
         previous_id: -1,
         fen: "".into(),
-        san_text: san.into(),
+        san_text: "".into(),
         variations: Rc::new(slint::VecModel::from([].to_vec())).into(),
         parent_line: -1,
         hide_move: true,
