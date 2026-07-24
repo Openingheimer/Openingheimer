@@ -1,8 +1,9 @@
 import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 import { Chessboard } from "chessboard.slint";
 import { MoveText } from "movetext.slint";
-import { SanMove, SanMoveRow } from "model.slint";
+import { SanMove, SanMoveRow, PgnItem } from "model.slint";
 import { PgnImport } from "pgnimport.slint";
+import { PgnLoad } from "pgnload.slint";
 
 export global Callbacks {
     pure callback piece_from_fen(string, int) -> string;
@@ -12,6 +13,7 @@ export global Callbacks {
     pure callback refresh_legal_moves(string, string, bool);
     pure callback go_to_position(SanMove);
     pure callback import_pgn(string);
+    pure callback choose_pgn();
 }
 
 export component AppWindow inherits Window {
@@ -26,6 +28,7 @@ export component AppWindow inherits Window {
     in-out property <bool> is_full_screen: false;
     in-out property <SanMove> current_move;
     in-out property <int> last_move_in_variation;
+    in-out property <[PgnItem]> openings;
 
     public function scroll-to-y(y: length) {
         move_text.scroll-to-y(y);
@@ -37,6 +40,10 @@ export component AppWindow inherits Window {
 
     public function close_import() {
         popup.close()
+    }
+
+    public function close_load() {
+        popup_load.close()
     }
 
     HorizontalBox {
@@ -63,6 +70,16 @@ export component AppWindow inherits Window {
         popup := PgnImport {
             import_pgn(pgn) => Callbacks.import_pgn(pgn);
             close_import => close_import();
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+        }
+
+        popup_load := PgnLoad {
+            load_pgn(pgn) => Callbacks.import_pgn(pgn);
+            close_load() => close_load();
+            openings: root.openings;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
         }
     }
 
@@ -70,6 +87,14 @@ export component AppWindow inherits Window {
         KeyBinding {
             keys: @keys(C);
             activated => popup.show();
+        }
+
+        KeyBinding {
+            keys: @keys(Q);
+            activated => {
+                Callbacks.choose_pgn();
+                popup_load.show();
+            }
         }
     }
 }

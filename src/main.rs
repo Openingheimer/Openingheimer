@@ -25,6 +25,7 @@ use slint::Weak;
 use std::error::Error;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::{fs};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let ui = AppWindow::new()?;
@@ -32,9 +33,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     //set_full_screen(&ui)?;
 
-    let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    let player_turn = fen.split(' ').nth(1).unwrap();
-    ui.set_fen(fen.into());
+    let opening_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    let player_turn = opening_position.split(' ').nth(1).unwrap();
+    ui.set_fen(opening_position.into());
     ui.set_player_color(player_turn.into());
 
     let puzzle_master = Rc::new(RefCell::new(seed_position(&ui_handle)));
@@ -101,7 +102,41 @@ fn main() -> Result<(), Box<dyn Error>> {
             ..Default::default()
         };
 
+        handle.set_fen(opening_position.to_shared_string());
+        handle.set_player_color("w".to_shared_string());
+        handle.set_current_move(SanMove{ id: -2, ..Default::default() });
         handle.set_move_rows(Rc::new(slint::VecModel::from(reader.san_move_rows)).into());
+    });
+
+    let load_pgn = ui_handle.clone();
+    let puzzle_master_clone = puzzle_master.clone();
+    ui.global::<Callbacks>().on_choose_pgn(move ||{
+
+       let handle = load_pgn.clone().unwrap();
+       let dir_path = r"C:\ChessPgn";
+
+       let entries: Vec<PgnItem> = match fs::read_dir(dir_path) {
+            Ok(read_dir) => read_dir
+                .filter_map(|entry| {
+                    let entry = entry.ok()?;
+
+                    if !entry.file_type().ok()?.is_file() {
+                        return None;
+                    }
+
+                    let file_name: SharedString = entry.file_name().into_string().ok()?.into();
+                    let file_data: SharedString = fs::read_to_string(entry.path()).ok()?.into();
+
+                    Some( PgnItem { filename: file_name, contents: file_data })
+                })
+                .collect(),
+            Err(e) => {
+                eprintln!("Error reading directory: {}", e);
+                return;
+            }
+        };
+
+         handle.set_openings(Rc::new(slint::VecModel::from(entries)).into());
     });
 
     ui.run()?;
@@ -112,7 +147,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn seed_position(ui: &Weak<AppWindow>) -> PuzzleMaster {
 
     let handle = ui.unwrap();
-    let reader = parse_pgn("1. e4 c5 2. Nf3 Nc6 (2... d6 3. Nc3) (2... g6 3. g3) 3. Bc4 *".into());
+    let reader = parse_pgn("1. e4 c5 (1... e5 2. Nf3) (1... e6 2. d4) *".into());
 
     handle.set_current_move(SanMove{ id: -2, ..Default::default() });
     handle.set_move_rows(Rc::new(slint::VecModel::from(reader.san_move_rows.clone())).into());

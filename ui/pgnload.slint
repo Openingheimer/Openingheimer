@@ -1,0 +1,38 @@
+
+import { PgnItem } from "model.slint";
+import { TextEdit, VerticalBox, Button, ListView } from "std-widgets.slint";
+
+export component PgnLoad inherits PopupWindow {
+    width: 400px;
+    height: 400px;
+    close-policy: PopupClosePolicy.close-on-click-outside;
+
+    in-out property <[PgnItem]> openings;
+    pure callback load_pgn(string);
+    callback close_load();
+
+    VerticalBox {
+        ListView {
+            for opening in openings: Rectangle {
+                background: black;
+                width: 200px;
+                height: 200px;
+
+                TouchArea {
+                    height: 30px;
+                    width: parent.width;
+                    Text {
+                        x: 0;
+                        text: opening.filename;
+                        color: white;
+                    }
+
+                    double-clicked => {
+                        load_pgn(opening.contents);
+                        close_load();
+                    }
+                }
+            }
+        }
+    }
+}
