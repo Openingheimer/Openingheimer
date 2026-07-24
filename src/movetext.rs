@@ -1,10 +1,8 @@
 
-
+use crate::fen_master::*;
 use crate::{SanMoveRow, SanMove, model::*};
 use slint::{Model, ModelRc, VecModel};
-use shakmaty::{fen::Fen, EnPassantMode};
-use shakmaty::Chess;
-use slint::{SharedString, ToSharedString};
+use slint::{ToSharedString};
 use std::rc::Rc;
 
 pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
@@ -76,7 +74,8 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                fen: fen_from_position(&current_move.position),
                next_id: -1,
                previous_id: updated_row.white.id,
-               variations: get_variations(&current_move.variations)
+               variations: get_variations(&current_move.variations),
+               parent_line: current_move.parent_line.map(|x| x as i32).unwrap_or(-1),
             };
 
             match reader.is_new_var {
@@ -138,7 +137,8 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                 Some(i) => i as i32,
                 None => -1
             },
-            variations: get_variations(&current_move.variations)
+            variations: get_variations(&current_move.variations),
+            parent_line: current_move.parent_line.map(|x| x as i32).unwrap_or(-1)
         },
         black: empty_san_move("".into()),
         depth: reader.depth,
@@ -153,10 +153,6 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                     .collect::<Vec<i32>>())).into()
  }
 
- fn fen_from_position(position: &Chess) -> SharedString {
-    Fen::from_position(position, EnPassantMode::Always).to_shared_string()
- }
-
  fn empty_san_move(san: String) -> SanMove {
     SanMove {
         id: -1,
@@ -164,7 +160,8 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
         previous_id: -1,
         fen: "".into(),
         san_text: san.into(),
-        variations: Rc::new(slint::VecModel::from([].to_vec())).into()
+        variations: Rc::new(slint::VecModel::from([].to_vec())).into(),
+        parent_line: -1,
     }
  }
 

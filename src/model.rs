@@ -202,6 +202,7 @@ pub struct MoveReader {
     pub depth: i32,
     pub is_new_var: bool,
     pub is_end_var: bool,
+    pub parent_lines: Vec<usize>,
 }
 
 #[derive(Clone)]
@@ -212,6 +213,7 @@ pub struct MoveNode {
     pub previous: Option<usize>,
     pub next: Option<usize>,
     pub variations: Vec<usize>,
+    pub parent_line: Option<usize>,
 }
 
 #[derive(Clone)]

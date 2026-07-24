@@ -2,6 +2,8 @@ use crate::model::*;
 use crate::grand_master::*;
 use std::iter::repeat;
 use slint::{SharedString, ToSharedString};
+use shakmaty::{fen::Fen, EnPassantMode};
+use shakmaty::Chess;
 
  pub fn to_fenboard(fen: SharedString, from_coords: SharedString, to_coords: SharedString) -> FenBoard {
 
@@ -441,3 +443,6 @@ pub fn unpad_empty_squares(piece_placement: SharedString) -> SharedString {
     fen.into()
 }
 
+pub fn fen_from_position(position: &Chess) -> SharedString {
+    Fen::from_position(position, EnPassantMode::Always).to_shared_string()
+ }

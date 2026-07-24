@@ -57,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         pm.start_square = origin;
         pm.end_square = destination;
 
-        let (success,san_move) = do_make_move(&mut pm);
+        let (success, san_move) = do_make_move(&mut pm);
 
        if success {
             do_go_to_position(&make_move_weak, san_move);

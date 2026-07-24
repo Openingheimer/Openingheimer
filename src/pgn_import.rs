@@ -21,6 +21,7 @@ pub fn parse_pgn(pgn: String) -> MoveReader {
         depth: 1,
         is_new_var: false,
         is_end_var: false,
+        parent_lines: [].to_vec(),
     };
 
     let mut reader = Reader::new(io::Cursor::new(&pgn));
@@ -58,6 +59,7 @@ impl Visitor for MoveReader {
             next: None,
             previous: self.current,
             variations: Vec::new(),
+            parent_line: self.parent_lines.iter().last().copied(),
         };
 
         self.current = Some(self.moves.len());
@@ -79,6 +81,7 @@ impl Visitor for MoveReader {
 
        self.moves[current].variations.push(new_index);
 
+       self.parent_lines.push(previous.unwrap());
        self.pick_up_position_from.push(current);
        self.pick_up_turn_from.push(self.turn_number);
 
@@ -95,6 +98,7 @@ impl Visitor for MoveReader {
        self.turn_number = self.pick_up_turn_from.pop().unwrap();
        self.depth -= 1;
        self.is_end_var = true;
+       self.parent_lines.pop();
 
        ControlFlow::Continue(())
     }

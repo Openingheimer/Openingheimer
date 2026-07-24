@@ -178,4 +178,14 @@ mod move_text_builder_tests {
         assert_eq!(result[1].white.san_text, "Nf3");
         assert_eq!(result[1].white.next_id, 3);
     }
+
+    #[test]
+    fn end_of_var_has_pickup_point() {
+        let result = parse_pgn("1. e4 c5 (1... h5 2. h4) *".into()).san_move_rows;
+
+        assert_eq!(result[1].black.san_text, "h5");
+        assert_eq!(result[1].black.parent_line, 0);
+        assert_eq!(result[2].white.san_text, "h4");
+        assert_eq!(result[2].white.parent_line, 0);
+    }
 }
