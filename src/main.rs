@@ -57,10 +57,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         pm.start_square = origin;
         pm.end_square = destination;
 
-        let (success, san_move) = do_make_move(&mut pm);
+        let (success, san_move, finished_line, finished_line_move) = do_make_move(&mut pm);
 
        if success {
-            do_go_to_position(&make_move_weak, san_move);
+            do_go_to_position(&make_move_weak, san_move, finished_line, finished_line_move);
             // handle.invoke_scroll_to_y(response.scroll_y);
             // handle.invoke_scroll_to_x(response.scroll_x);
        }
@@ -85,7 +85,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut pm = puzzle_master_clone.borrow_mut();
         pm.next = Some(san_move.next_id as usize);
 
-        do_go_to_position(&go_to_position, san_move);
+        do_go_to_position(&go_to_position, san_move, false, -1);
     });
 
     let import_pgn = ui_handle.clone();
@@ -117,12 +117,12 @@ fn seed_position(ui: &Weak<AppWindow>) -> PuzzleMaster {
     }
 }
 
-fn do_make_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove) {
+fn do_make_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove, bool, i32) {
 
     check_move(puzzle_master)
 }
 
-fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove) {
+fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: bool, finished_line_move: i32) {
     let handle = ui.unwrap();
 
     if san_move.san_text.is_empty() || san_move.san_text == ".." {
@@ -130,6 +130,49 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove) {
     }
 
     let player_color: Vec<&str> = san_move.fen.split(' ').collect();
+    let move_rows = handle.get_move_rows();
+
+    match finished_line {
+        true => {
+            let mut finished_variation = move_rows
+                .iter()
+                .enumerate()
+                .find(|(_, x)| x.black.id == finished_line_move || x.white.id == finished_line_move)
+                .unwrap();
+
+            finished_variation.1.black.hide_move = false;
+            finished_variation.1.white.hide_move = false;
+
+           move_rows.set_row_data(finished_variation.0 as usize, finished_variation.1);
+        },
+        false => {
+            let moves: Vec<SanMoveRow> = move_rows
+            .iter()
+            .enumerate()
+            .map(|(i, mut x)| {
+
+                if x.white.variation_id == san_move.variation_id || x.black.variation_id == san_move.variation_id {
+                    if x.white.id > san_move.id {
+                        x.white.hide_move = true;
+                    }
+                    else{
+                        x.white.hide_move = false;
+                    }
+                    if x.black.id > san_move.id {
+                        x.black.hide_move = true;
+                    }
+                    else{
+                        x.black.hide_move = false;
+                    }
+                }
+
+                x
+            })
+            .collect();
+
+            handle.set_move_rows(Rc::new(slint::VecModel::from(moves.clone())).into());
+        }
+    }
 
     handle.set_fen(san_move.fen.clone());
     handle.set_current_move(san_move.clone());

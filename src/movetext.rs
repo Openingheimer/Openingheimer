@@ -76,6 +76,8 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                previous_id: updated_row.white.id,
                variations: get_variations(&current_move.variations),
                parent_line: current_move.parent_line.map(|x| x as i32).unwrap_or(-1),
+               hide_move: true,
+               variation_id: current_move.variation_id,
             };
 
             match reader.is_new_var {
@@ -138,7 +140,9 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                 None => -1
             },
             variations: get_variations(&current_move.variations),
-            parent_line: current_move.parent_line.map(|x| x as i32).unwrap_or(-1)
+            parent_line: current_move.parent_line.map(|x| x as i32).unwrap_or(-1),
+            hide_move: true,
+            variation_id: current_move.variation_id,
         },
         black: empty_san_move("".into()),
         depth: reader.depth,
@@ -162,6 +166,8 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
         san_text: san.into(),
         variations: Rc::new(slint::VecModel::from([].to_vec())).into(),
         parent_line: -1,
+        hide_move: true,
+        variation_id: -1,
     }
  }
 

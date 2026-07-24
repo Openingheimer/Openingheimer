@@ -7,7 +7,7 @@ use crate::fen_master::*;
 use crate::movetext::*;
 use crate::SanMove;
 
- pub fn check_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove) {
+ pub fn check_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove, bool, i32) {
 
 	let cloned = puzzle_master.clone();
 	let moves = puzzle_master.move_reader.moves.clone();
@@ -45,23 +45,23 @@ use crate::SanMove;
 
 					let san_move = create_san_move(parent_line_idx as i32, parent_line_move, fen);
 
-					(true, san_move)
+					(true, san_move, true, pm.0 as i32)
 				}
 				Some(pm) => {
 					puzzle_master.next = pm.1.next;
 
 					let san_move = create_san_move(pm.0 as i32, pm.1.clone(), result.fenboard.to_fen());
 
-					(true, san_move)
+					(true, san_move, false, -1)
 				}
-				None => (false, SanMove{..Default::default()})
+				None => (false, SanMove{..Default::default()}, false, -1)
 			}
 		}
-		None => (false, SanMove{..Default::default()}),
+		None => (false, SanMove{..Default::default()}, false, -1),
 	}
  }
 
- fn create_san_move(id: i32, move_node: MoveNode, fen: SharedString) -> SanMove{
+ fn create_san_move(id: i32, move_node: MoveNode, fen: SharedString) -> SanMove {
 	SanMove {
 		san_text: move_node.san.to_shared_string(),
 		fen: fen,
@@ -76,5 +76,7 @@ use crate::SanMove;
 		},
 		variations: get_variations(&move_node.variations),
 		parent_line: move_node.parent_line.map(|x| x as i32).unwrap_or(-1),
+		hide_move: true,
+		variation_id: move_node.variation_id,
 	}
  }

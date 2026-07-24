@@ -23,7 +23,7 @@ export component MoveRow {
         }
 
         Rectangle {
-            width: 60px;
+            width: 40px;
             background: root.background;
             Text {
                 x: 10px;
@@ -41,9 +41,9 @@ export component MoveRow {
 
         Rectangle {
             background: root.background;
-            width: 140px;
+            width: 80px;
             Text {
-                text: root.move.white.san-text;
+                text: root.move.white.hide_move && root.move.white.id >= 0 ? "-" : root.move.white.san-text;
                 font-size: font_size;
                 width: 100%;
                 color: move.white.id == current_move.id ? highlight_color : font_color;
@@ -59,7 +59,7 @@ export component MoveRow {
         Rectangle {
             background: root.background;
             Text {
-                text: root.move.black.san-text;
+                text: root.move.black.hide_move && root.move.black.id >= 0 ? "-" : root.move.black.san-text;
                 font-size: font_size;
                 width: 100%;
                 color: move.black.id == current_move.id ? highlight_color : font_color;

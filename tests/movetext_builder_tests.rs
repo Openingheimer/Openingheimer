@@ -188,4 +188,20 @@ mod move_text_builder_tests {
         assert_eq!(result[2].white.san_text, "h4");
         assert_eq!(result[2].white.parent_line, 0);
     }
+
+    #[test]
+    fn variation_has_its_own_id() {
+        let result = parse_pgn("1. e4 c5 (1... h5 2. Nf3) (1... e5) 2. Nc3".into()).san_move_rows;
+
+        let first_var = result[0].white.variation_id;
+        let second_var = result[2].white.variation_id;
+        let third_var = result[3].black.variation_id;
+        let main_line_end = result[4].white.variation_id;
+
+        assert_eq!(result[0].white.san_text, "e4");
+        assert_ne!(first_var, second_var);
+        assert_ne!(first_var, third_var);
+        assert_ne!(second_var, third_var);
+        assert_eq!(main_line_end, first_var);
+    }
 }

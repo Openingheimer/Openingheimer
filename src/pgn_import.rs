@@ -1,6 +1,7 @@
 
 use crate::model::MoveReader;
 use crate::model::MoveNode;
+use crate::model::next_variation_id;
 use crate::movetext::*;
 use std::ops::ControlFlow;
 use std::io;
@@ -22,6 +23,7 @@ pub fn parse_pgn(pgn: String) -> MoveReader {
         is_new_var: false,
         is_end_var: false,
         parent_lines: [].to_vec(),
+        variation_ids: [next_variation_id()].to_vec(),
     };
 
     let mut reader = Reader::new(io::Cursor::new(&pgn));
@@ -60,6 +62,7 @@ impl Visitor for MoveReader {
             previous: self.current,
             variations: Vec::new(),
             parent_line: self.parent_lines.iter().last().copied(),
+            variation_id: self.variation_ids.iter().last().copied().unwrap(),
         };
 
         self.current = Some(self.moves.len());
@@ -84,6 +87,7 @@ impl Visitor for MoveReader {
        self.parent_lines.push(previous.unwrap());
        self.pick_up_position_from.push(current);
        self.pick_up_turn_from.push(self.turn_number);
+       self.variation_ids.push(next_variation_id());
 
        self.current = previous;
        self.depth += 1;
@@ -96,6 +100,7 @@ impl Visitor for MoveReader {
 
        self.current = self.pick_up_position_from.pop();
        self.turn_number = self.pick_up_turn_from.pop().unwrap();
+       self.variation_ids.pop();
        self.depth -= 1;
        self.is_end_var = true;
        self.parent_lines.pop();
