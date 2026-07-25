@@ -16,7 +16,7 @@ use crate::SanMove;
 
 	match puzzle_master.next{
 
-		Some(m) => {
+		Some(m) if moves.get(m).is_some() => {
 			let mainline_move = moves[m].clone();
 
 			let mut opening_moves = moves
@@ -57,7 +57,7 @@ use crate::SanMove;
 				None => (false, SanMove{..Default::default()}, false, -1)
 			}
 		}
-		None => (false, SanMove{..Default::default()}, false, -1),
+		_ => (false, SanMove{..Default::default()}, false, -1),
 	}
  }
 
