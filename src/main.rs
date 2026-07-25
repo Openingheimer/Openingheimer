@@ -226,6 +226,7 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: boo
     handle.set_fen(san_move.fen.clone());
     handle.set_current_move(san_move.clone());
     handle.set_player_color(player_color[1].to_shared_string());
+    handle.invoke_clear_active_coords();
 }
 
 fn do_check_legal_square(ui: &Weak<AppWindow>, square: SharedString) -> bool {

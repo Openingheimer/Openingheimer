@@ -10,7 +10,7 @@ export component Chessboard {
 
     in-out property <string> fen;
     in-out property <string> player_color;
-    in-out property <bool> boardFlipped: false;
+    in-out property <int> board_flip: 1;
 
     property <bool> debug_legal_moves: false;
     in-out property <[string]> legal_moves;
@@ -39,7 +39,14 @@ export component Chessboard {
     pure callback check_legal_move(string) -> bool;
     pure callback refresh_legal_moves(string, string, bool);
 
+    public function clear_active_coords() {
+        drop_piece()
+    }
+
     board := GridLayout {
+
+        transform-scale-x: board_flip;
+        transform-scale-y: board_flip;
 
         for rank[r] in ranks: Row {
             for file[f] in files: Rectangle {
@@ -61,6 +68,10 @@ export component Chessboard {
                 }
 
                 board_square_image := Image {
+
+                    transform-scale-x: board_flip;
+                    transform-scale-y: board_flip;
+
                     width: cellSize;
                     height: cellSize;
                     source: board_square.image;
@@ -153,14 +164,17 @@ export component Chessboard {
         grabbed_piece.source = bs.image;
         piece_in_hand_color = bs.piece_color;
 
-        let board_coords = get_board_coords(mousex, mousey, file, rank);
-        let imageOffset = cellSize / 2;
+        let f = board_flip == 1 ? file : 7 - file;
+        let r = board_flip == 1 ? rank : 7 - rank;
 
-        let clamp_leeway_x = -imageOffset + board.x;
-        let clamp_leeway_y = -imageOffset + board.y;
+        let board_coords = get_board_coords(mousex, mousey, f, r);
+        let image_offset = cellSize / 2;
 
-        grabbed_piece.x = clamp(board_coords.x - imageOffset + board.x, clamp_leeway_x, boardpx + clamp_leeway_x);
-        grabbed_piece.y = clamp(board_coords.y - imageOffset + board.y, clamp_leeway_y, boardpx + clamp_leeway_y);
+        let clamp_leeway_x = -image_offset;
+        let clamp_leeway_y = -image_offset;
+
+        grabbed_piece.x = clamp(board_coords.x - image_offset, clamp_leeway_x, boardpx - clamp_leeway_x);
+        grabbed_piece.y = clamp(board_coords.y - image_offset, clamp_leeway_y, boardpx - clamp_leeway_y);
     }
 
     function move_piece() {
@@ -190,43 +204,31 @@ export component Chessboard {
 
     function get_hovered_square(mousex: length, mousey: length, file: int, rank: int) -> string {
 
-        let board = get_board_coords(mousex, mousey, file, rank);
+        let x = mousex + (file * cellSize);
+        let y = mousey + (rank * cellSize);
 
-        let f = files[(board.x / (cellSize))];
-        let r = ranks[(board.y / (cellSize))];
+        let off_board = clamp_off_board(x, y);
+
+        let f = files[(off_board.x / (cellSize))];
+        let r = ranks[(off_board.y / (cellSize))];
 
         f + r
     }
 
-    function get_board_coords(x: length, y: length, f: int, r: int) -> Point {
+    function get_board_coords(x: length, y: length, file: int, rank: int) -> Point {
 
-        let bx = x + (f * cellSize);
-        let by = y + (r * cellSize);
+        let xx = board_flip == 1 ? x : cellSize - x;
+        let yy = board_flip == 1 ? y : cellSize - y;
 
-        dropped_off_board_hack(bx, by)
+        let bx = xx + (file * cellSize);
+        let by = yy + (rank * cellSize);
+
+        clamp_off_board(bx, by)
     }
 
-    //fix crashes when grabbed piece is dropped off the board
-    function dropped_off_board_hack(bx: length, by: length) -> Point {
-
-        let off_left = bx < 0;
-        let off_right = bx > BOARD_SIZE * 1px;
-        let off_high = by < 0;
-        let off_low = by > BOARD_SIZE * 1px;
-
-        if (off_left || off_right) {
-            off_board_x = true;
-        }
-        if (off_high || off_low) {
-            off_board_y = true;
-        }
-        let x = off_board_x == false ? bx : off-left ? 0 : (BOARD_SIZE - 1) * 1px;
-        let y = off_board_y == false ? by : off-high ? 0 : (BOARD_SIZE - 1) * 1px;
-
-        off_board_x = false;
-        off_board_y = false;
-
-        { x: x, y: y }
+    function clamp_off_board(x: length, y: length) -> Point {
+        //need to pad 1px
+        { x: clamp(x, 1px, (BOARD_SIZE * 1px - 1px)), y:clamp(y, 1px, (BOARD_SIZE * 1px - 1px)) }
     }
 
     function display_legal_moves() {

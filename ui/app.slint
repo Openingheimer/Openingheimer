@@ -41,18 +41,22 @@ export component AppWindow inherits Window {
     }
 
     public function close_import() {
-        popup.close()
+        popup_import.close()
     }
 
     public function close_load() {
         popup_load.close()
     }
 
+    public function clear_active_coords() {
+        chessboard.clear_active_coords()
+    }
+
     HorizontalBox {
         alignment: center;
         padding-top: 150px;
 
-        Chessboard {
+        chessboard := Chessboard {
             fen: root.fen;
             player_color: root.player_color;
             legal_moves: root.legal_moves;
@@ -71,7 +75,7 @@ export component AppWindow inherits Window {
             go_to_position(m) => Callbacks.go_to_position(m);
         }
 
-        popup := PgnImport {
+        popup_import := PgnImport {
             import_pgn(pgn) => Callbacks.import_pgn(pgn);
             close_import => close_import();
             x: (parent.width - self.width) / 2;
@@ -90,7 +94,7 @@ export component AppWindow inherits Window {
     scope := FocusScope {
         KeyBinding {
             keys: @keys(C);
-            activated => popup.show();
+            activated => popup_import.show();
         }
 
         KeyBinding {
@@ -98,6 +102,13 @@ export component AppWindow inherits Window {
             activated => {
                 Callbacks.choose_pgn();
                 popup_load.show();
+            }
+        }
+
+        KeyBinding {
+            keys: @keys(F);
+            activated => {
+                chessboard.board_flip = -chessboard.board_flip;
             }
         }
     }
