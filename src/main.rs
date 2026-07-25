@@ -16,7 +16,6 @@ use crate::fen_master::*;
 use crate::model::*;
 use crate::pgn_import::*;
 use crate::puzzle_master::*;
-use crate::movetext::*;
 use i_slint_backend_winit::WinitWindowAccessor;
 use slint::Model;
 use slint::PhysicalSize;
@@ -160,9 +159,6 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: boo
         return;
     }
 
-     handle.set_last_move_from(san_move.from_square.clone());
-     handle.set_last_move_to(san_move.to_square.clone());
-
     let player_color: Vec<&str> = san_move.fen.split(' ').collect();
     let move_rows = handle.get_move_rows();
 
@@ -180,43 +176,36 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: boo
            move_rows.set_row_data(finished_variation.0 as usize, finished_variation.1);
         },
         false => {
-            let moves: Vec<SanMoveRow> = move_rows
-            .iter()
-            .enumerate()
-            .map(|(i, mut x)| {
+            for i in 0..move_rows.row_count() {
+                let mut row = move_rows.row_data(i).unwrap();
 
-                if x.white.variation_id == san_move.variation_id || x.black.variation_id == san_move.variation_id {
-                    if x.white.id > san_move.id {
-                        x.white.hide_move = true;
-                    }
-                    else{
-                        x.white.hide_move = false;
-                    }
-                    if x.black.id > san_move.id {
-                        x.black.hide_move = true;
-                    }
-                    else{
-                        x.black.hide_move = false;
-                    }
+                if row.white.variation_id == san_move.variation_id
+                    || row.black.variation_id == san_move.variation_id
+                {
+                    row.white.hide_move = row.white.id > san_move.id;
+                    row.black.hide_move = row.black.id > san_move.id;
+
+                    move_rows.set_row_data(i, row);
                 }
-
-                x
-            })
-            .collect();
-
-            handle.set_move_rows(Rc::new(slint::VecModel::from(moves.clone())).into());
+            }
         }
     }
 
-    let scroll_point = get_scroll_point(move_rows.iter().collect(), san_move.id);
+    let scroll_to = move_rows.clone()
+        .iter()
+        .enumerate()
+        .find(|(_, x)| x.white.id == san_move.id || x.black.id == san_move.id)
+        .unwrap();
 
-    handle.invoke_scroll_to_x(scroll_point.0);
-    handle.invoke_scroll_to_y(scroll_point.1);
+    handle.invoke_scroll_to_index_y(scroll_to.0 as i32);
+    handle.invoke_scroll_to_index_x(scroll_to.1.depth);
 
     handle.set_fen(san_move.fen.clone());
     handle.set_current_move(san_move.clone());
     handle.set_player_color(player_color[1].to_shared_string());
     handle.invoke_clear_active_coords();
+    handle.set_last_move_from(san_move.from_square.clone());
+    handle.set_last_move_to(san_move.to_square.clone());
 }
 
 fn set_full_screen(ui: &AppWindow) -> Result<(), Box<dyn Error>> {

@@ -176,25 +176,3 @@ pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
         to_square: "".into(),
     }
  }
-
- pub fn get_scroll_point(moves: Vec<SanMoveRow>, current_move_id: i32) -> (f32, f32) {
-
-    let scroll_to = moves.clone()
-        .iter()
-        .position(|x| x.white.id == current_move_id || x.black.id == current_move_id)
-        .unwrap();
-
-    let depth = moves[scroll_to].depth;
-
-    let row_height = 40.0;
-
-    let right_pad = match depth.clone() {
-        1 => 0.0,
-        _ => 15.0
-    };
-
-    let y = -(scroll_to as f32 * row_height) + 20.0;
-    let x = ((depth - 1) as f32 * -45.0) - right_pad;
-
-    (x, y)
- }

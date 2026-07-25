@@ -29,12 +29,12 @@ export component AppWindow inherits Window {
     in-out property <int> last_move_in_variation;
     in-out property <[PgnItem]> openings;
 
-    public function scroll-to-y(y: length) {
-        move_text.scroll-to-y(y);
+    public function scroll-to-index-y(index: int) {
+        move_text.scroll_to_index_y(index);
     }
 
-    public function scroll-to-x(x: length) {
-        move_text.scroll-to-x(x);
+    public function scroll_to_index_x(index: int) {
+        move_text.scroll_to_index_x(index);
     }
 
     public function close_import() {

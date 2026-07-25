@@ -21,15 +21,14 @@ export component MoveText {
     in-out property <SanMove> current_move;
 
     pure callback go_to_position(SanMove);
-    callback scroll_to_y(length);
-    callback scroll_to_x(length);
+    callback scroll_to_index_y(int);
+    callback scroll_to_index_x(int);
 
-    scroll_to_y(y) => {
-        scroll.viewport-y = y;
+    scroll_to_index_y(index) => {
+        scroll.viewport-y = -(index * 40px) + scroll.height / 2 - 20px;
     }
 
-    scroll_to_x(x) => {
-        scroll.viewport-x = x;
+    scroll_to_index_x(x) => {
     }
 
     Rectangle {
