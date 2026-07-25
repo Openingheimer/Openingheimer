@@ -150,4 +150,11 @@ mod pgn_import_tests {
         assert_eq!(result[3].san, "Nc6");
         assert_eq!(result[3].next, Some(6));
     }
+
+    #[test]
+    fn sets_check() {
+        let result = parse_pgn("1. e4 d5 2. Bb5+ *".into()).moves;
+
+        assert_eq!(result[2].san, "Bb5+");
+    }
 }

@@ -55,8 +55,13 @@ impl Visitor for MoveReader {
 
         position.play_unchecked(next_move);
 
+        let suffix = match san_plus.suffix {
+            Some(x) => x.to_string(),
+            _ => "".to_string()
+        };
+
         let new_move = MoveNode {
-            san: san_plus.san.to_string(),
+            san: san_plus.san.to_string() + &suffix.to_string(),
             position: position.clone(),
             next: None,
             previous: self.current,
