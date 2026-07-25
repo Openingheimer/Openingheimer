@@ -68,16 +68,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         success
     });
 
-    let is_legal_weak = ui_handle.clone();
-    ui.global::<Callbacks>().on_check_legal_move(move |square| -> bool {
-        do_check_legal_square(&is_legal_weak, square)
-    });
-
-    let refresh_legal_moves = ui_handle.clone();
-    ui.global::<Callbacks>().on_refresh_legal_moves(move |fen, square, clear| {
-        do_refresh_legal_moves(&refresh_legal_moves, fen, square, clear)
-    });
-
     let go_to_position = ui_handle.clone();
     let puzzle_master_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_go_to_position(move |san_move| {
@@ -227,32 +217,6 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: boo
     handle.set_current_move(san_move.clone());
     handle.set_player_color(player_color[1].to_shared_string());
     handle.invoke_clear_active_coords();
-}
-
-fn do_check_legal_square(ui: &Weak<AppWindow>, square: SharedString) -> bool {
-    if square == "" {
-        return false;
-    }
-
-    let handle = ui.unwrap();
-    let legal_moves = handle.get_legal_moves();
-
-    legal_moves.iter().any(|m| m.as_str() == square.as_str())
-}
-
-fn do_refresh_legal_moves(ui: &Weak<AppWindow>, fen: SharedString, square: SharedString, clear: bool) {
-    if square != "" {
-        let handle = ui.unwrap();
-        let piece = get_piece_from_fen(fen.clone(), square.clone());
-
-        let legal_moves = match piece {
-            _ if clear => [].to_vec(),
-            Some(p) => p.get_moves(fen, square_to_index64(square)),
-            _ => [].to_vec(),
-        };
-
-        handle.set_legal_moves(Rc::new(slint::VecModel::from(legal_moves)).into());
-    }
 }
 
 fn set_full_screen(ui: &AppWindow) -> Result<(), Box<dyn Error>> {

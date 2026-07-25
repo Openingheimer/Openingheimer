@@ -12,8 +12,6 @@ export component Chessboard {
     in-out property <string> player_color;
     in-out property <int> board_flip: 1;
 
-    property <bool> debug_legal_moves: false;
-    in-out property <[string]> legal_moves;
     in-out property <string> last_move_from;
     in-out property <string> last_move_to;
 
@@ -36,8 +34,6 @@ export component Chessboard {
     pure callback piece_from_fen(string, int) -> string;
     pure callback make_move(string, string, string) -> bool;
     pure callback color_on_square(string, string) -> string;
-    pure callback check_legal_move(string) -> bool;
-    pure callback refresh_legal_moves(string, string, bool);
 
     public function clear_active_coords() {
         drop_piece()
@@ -63,7 +59,6 @@ export component Chessboard {
                         square_color: mod(f + r, 2) == 0 ? light : dark,
                         image: get_image(fen_code),
                         has_piece: fen_code != ".",
-                        legal_move: check_legal_move(coords),
                     };
                 }
 
@@ -81,8 +76,7 @@ export component Chessboard {
 
                 width: cellSize;
                 height: cellSize;
-                background: debugging_legal_moves() ? green :
-                    ((active_coords == board_square.coords && board_square.has_piece) ||
+                background: ((active_coords == board_square.coords && board_square.has_piece) ||
                     last_move_from == board_square.coords ||
                     last_move_to == board_square.coords)
                     ? board_square.square_color.mix(hightlight, 0.5)
@@ -123,7 +117,6 @@ export component Chessboard {
                     }
 
                     active_coords = bs.coords;
-                    display_legal_moves();
                 }
 
                 function pointer_up(bs: BoardSquare) {
@@ -132,10 +125,6 @@ export component Chessboard {
                         move_piece();
                     }
                     soft_drop_piece();
-                }
-
-                function debugging_legal_moves() -> bool {
-                    debug_legal_moves && board_square.legal_move
                 }
             }
         }
@@ -152,7 +141,6 @@ export component Chessboard {
     }
 
     function releasing_grabbed_piece(bs: BoardSquare) -> bool {
-        clear_legal_moves();
         root.is_grabbing_piece &&
             root.dropped_piece_coords != "" &&
             root.dropped_piece_coords != bs.coords
@@ -193,8 +181,6 @@ export component Chessboard {
         root.piece_in_hand_color = "";
         root.active_coords = "";
         soft_drop_piece();
-
-        clear_legal_moves();
     }
 
     function soft_drop_piece() {
@@ -229,18 +215,6 @@ export component Chessboard {
     function clamp_off_board(x: length, y: length) -> Point {
         //need to pad 1px
         { x: clamp(x, 1px, (BOARD_SIZE * 1px - 1px)), y:clamp(y, 1px, (BOARD_SIZE * 1px - 1px)) }
-    }
-
-    function display_legal_moves() {
-        if debug_legal_moves {
-            refresh_legal_moves(fen, active_coords, false);
-        }
-    }
-
-    function clear_legal_moves() {
-        if debug_legal_moves {
-            refresh_legal_moves(fen, active_coords, true);
-        }
     }
 
     function our_piece() -> bool {
