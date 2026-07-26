@@ -438,7 +438,9 @@ fn get_confusers(star_fen64: SharedString, piece: Piece, pinned_pieces: Vec<i32>
 		.map(|(i, x)| (i, get_piece_from_fen_code(&x)))
 		.filter(|(_, x)| x.is_some())
 		.map(|(i, x)| (i as i32, x.unwrap()))
-		.filter(|(_, x)| x.piece_type == piece.piece_type && x.color == piece.color)
+		.filter(|(_, x)| x.piece_type == piece.piece_type &&
+						 x.piece_type != PieceType::Pawn &&
+						 x.color == piece.color)
 		.filter(|(i, _)| is_piece_pinned(pinned_pieces.clone(), *i) == false)
 		.collect()
 }
