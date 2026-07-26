@@ -7,6 +7,7 @@ use crate::SanMoveRow;
 use shakmaty::Chess;
 use slint::SharedString;
 use std::sync::atomic::{AtomicU64, Ordering};
+use rodio::{Decoder, DeviceSinkBuilder, stream::MixerDeviceSink};
 
 pub trait PieceBrain {
     #[allow(dead_code)]
@@ -140,7 +141,10 @@ pub enum MoveType {
     Capture,
     Castle,
     Promotion,
-    CapturePromotion
+    CapturePromotion,
+    Check,
+    Incorrect,
+    EndOfLine,
 }
 
 #[derive(PartialEq)]
@@ -239,4 +243,38 @@ pub fn next_id() -> i32 {
 
 pub fn next_variation_id() -> i32 {
     NEXT_VAR_ID.fetch_add(1, Ordering::Relaxed) as i32
+}
+
+pub struct AudioPlayer {
+    handle: MixerDeviceSink,
+}
+
+impl AudioPlayer {
+    pub fn new() -> Self {
+        Self {
+            handle: {
+                let mut sink = DeviceSinkBuilder::open_default_sink().unwrap();
+                sink.log_on_drop(false);
+                sink
+            },
+        }
+    }
+
+    pub fn play_sound(&self, move_type: &MoveType) {
+
+        let sound = match move_type {
+            MoveType::Normal => "sounds/move-self.mp3",
+            MoveType::Capture => "sounds/capture.mp3",
+            MoveType::Castle => "sounds/castle.mp3",
+            MoveType::Promotion => "sounds/promote.mp3",
+            MoveType::CapturePromotion => "sounds/promote.mp3",
+            MoveType::Check => "sounds/move-check.mp3",
+            MoveType::Incorrect => "sounds/incorrect.mp3",
+            MoveType::EndOfLine => "sounds/puzzle-correct-2.mp3",
+        };
+
+        let file = std::fs::File::open(sound).unwrap();
+        let source = Decoder::try_from(file).unwrap();
+        self.handle.mixer().add(source);
+    }
 }

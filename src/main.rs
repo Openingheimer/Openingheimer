@@ -25,11 +25,12 @@ use slint::Weak;
 use std::error::Error;
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::{fs};
+use std::fs;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let ui = AppWindow::new()?;
     let ui_handle = ui.as_weak();
+    let audio_player = AudioPlayer::new();
 
     //set_full_screen(&ui)?;
 
@@ -38,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.set_fen(opening_position.into());
     ui.set_player_color(player_turn.into());
 
-    let puzzle_master = Rc::new(RefCell::new(seed_position(&ui_handle)));
+    let puzzle_master = Rc::new(RefCell::new(initial_position(&ui_handle)));
 
     ui.global::<Callbacks>().on_piece_from_fen(|fen, index|
         get_piece_code_from_fen(fen, index).into());
@@ -46,11 +47,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     ui.global::<Callbacks>().on_color_on_square(|fen, square|
         get_piece_color_from_square(fen, square));
 
-    let make_move_weak = ui_handle.clone();
+    let ui_clone = ui_handle.clone();
     let puzzle_master_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
 
-        let handle = make_move_weak.unwrap();
+        if origin == "" || destination == "" {
+            return false;
+        }
+
+        let handle = ui_clone.unwrap();
 
         let mut pm = puzzle_master_clone.borrow_mut();
 
@@ -58,29 +63,31 @@ fn main() -> Result<(), Box<dyn Error>> {
         pm.start_square = origin.clone();
         pm.end_square = destination.clone();
 
-        let (success, san_move, finished_line, finished_line_move) = do_make_move(&mut pm);
+        let (success, san_move, finished_line, finished_line_move, move_type) = do_make_move(&mut pm);
 
-       if success {
-            do_go_to_position(&make_move_weak, san_move, finished_line, finished_line_move);
-       }
+        if success {
+            do_go_to_position(&ui_clone, san_move, finished_line, finished_line_move);
+        }
+
+        audio_player.play_sound(&move_type);
 
         success
     });
 
-    let go_to_position = ui_handle.clone();
+    let ui_clone = ui_handle.clone();
     let puzzle_master_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_go_to_position(move |san_move| {
 
         let mut pm = puzzle_master_clone.borrow_mut();
         pm.next = Some(san_move.next_id as usize);
 
-        do_go_to_position(&go_to_position, san_move, false, -1);
+        do_go_to_position(&ui_clone, san_move, false, -1);
     });
 
-    let import_pgn = ui_handle.clone();
+    let ui_clone = ui_handle.clone();
     let puzzle_master_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_import_pgn(move |pgn| {
-        let handle = import_pgn.clone().unwrap();
+        let handle = ui_clone.clone().unwrap();
 
         let reader = parse_pgn(pgn.into());
 
@@ -96,11 +103,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         handle.set_move_rows(Rc::new(slint::VecModel::from(reader.san_move_rows)).into());
     });
 
-    let load_pgn = ui_handle.clone();
-    let puzzle_master_clone = puzzle_master.clone();
+    let ui_clone = ui_handle.clone();
     ui.global::<Callbacks>().on_choose_pgn(move ||{
 
-       let handle = load_pgn.clone().unwrap();
+       let handle = ui_clone.clone().unwrap();
        let dir_path = r"C:\ChessPgn";
 
        let entries: Vec<PgnItem> = match fs::read_dir(dir_path) {
@@ -132,10 +138,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn seed_position(ui: &Weak<AppWindow>) -> PuzzleMaster {
+fn initial_position(ui: &Weak<AppWindow>) -> PuzzleMaster {
 
     let handle = ui.unwrap();
-    let reader = parse_pgn("1. e4 c5 (1... e5 2. Nf3) (1... e6 2. d4) *".into());
+    let reader = parse_pgn("1. e4 c5 2. Nf3 d6 (2... Nc6 3. Bb5 g6 (3... e6 4. d4)) (2... g6 3. d4 cxd4) 3.
+d4 cxd4 4. Nxd4 *".into());
 
     handle.set_current_move(SanMove{ id: -2, ..Default::default() });
     handle.set_move_rows(Rc::new(slint::VecModel::from(reader.san_move_rows.clone())).into());
@@ -147,7 +154,7 @@ fn seed_position(ui: &Weak<AppWindow>) -> PuzzleMaster {
     }
 }
 
-fn do_make_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove, bool, i32) {
+fn do_make_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove, bool, i32, MoveType) {
 
     check_move(puzzle_master)
 }

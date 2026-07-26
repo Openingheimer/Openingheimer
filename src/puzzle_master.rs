@@ -7,7 +7,7 @@ use crate::fen_master::*;
 use crate::movetext::*;
 use crate::SanMove;
 
- pub fn check_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove, bool, i32) {
+ pub fn check_move(puzzle_master: &mut PuzzleMaster) -> (bool, SanMove, bool, i32, MoveType) {
 
 	let cloned = puzzle_master.clone();
 	let moves = puzzle_master.move_reader.moves.clone();
@@ -30,7 +30,7 @@ use crate::SanMove;
 
 			let move_made = result.fenboard.san_move.to_string();
 
-			let is_opening_move = opening_moves.iter().find(|x| x.1.san == move_made);
+			let is_opening_move = opening_moves.iter().find(|x| x.1.san.contains(&move_made));
 
 			match is_opening_move {
 				Some(pm) if pm.1.next.is_none() &&
@@ -45,19 +45,19 @@ use crate::SanMove;
 
 					let san_move = create_san_move(parent_line_idx as i32, parent_line_move, fen);
 
-					(true, san_move, true, pm.0 as i32)
+					(true, san_move, true, pm.0 as i32, MoveType::EndOfLine)
 				}
 				Some(pm) => {
 					puzzle_master.next = pm.1.next;
 
 					let san_move = create_san_move(pm.0 as i32, pm.1.clone(), result.fenboard.to_fen());
 
-					(true, san_move, false, -1)
+					(true, san_move, false, -1, result.fenboard.move_type)
 				}
-				None => (false, SanMove{..Default::default()}, false, -1)
+				None => wrong_move()
 			}
 		}
-		_ => (false, SanMove{..Default::default()}, false, -1),
+		_ => wrong_move()
 	}
  }
 
@@ -81,4 +81,8 @@ use crate::SanMove;
 		from_square: move_node.from_square.into(),
 		to_square: move_node.to_square.into(),
 	}
+ }
+
+  fn wrong_move () -> (bool, SanMove, bool, i32, MoveType) {
+	(false, SanMove{..Default::default()}, false, -1, MoveType::Incorrect)
  }

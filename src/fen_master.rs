@@ -261,6 +261,9 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 		},
 		MoveType::Promotion => fenboard.to_coords.to_shared_string() + "=" + promotion_piece,
 		MoveType::CapturePromotion => "x".to_shared_string() + &fenboard.to_coords + "=" + promotion_piece,
+		MoveType::Check => panic!("Check Move Type is not implemented here"),
+		MoveType::Incorrect => panic!("Incorrect Move Type is not implemented here"),
+		MoveType::EndOfLine => panic!("EndOfLine Move Type is not implemented here"),
 	};
 
 	let opposing_color = match &piece.color {
@@ -268,7 +271,9 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 		Color::Black => Color::White
 	};
 
-	let is_check: SharedString = match is_king_in_check(fenboard.piece_placement.clone(), &opposing_color) {
+	let is_king_in_check = is_king_in_check(fenboard.piece_placement.clone(), &opposing_color);
+
+	let is_check: SharedString = match is_king_in_check {
 		true => "+".into(),
 		false => "".into()
 	};
@@ -276,6 +281,11 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 	fenboard.san_move = match fenboard.move_type {
 		MoveType::Castle => to_square + &is_check,
 		_ => san + &to_square + &is_check
+	};
+
+	fenboard.move_type = match is_king_in_check {
+		true => MoveType::Check,
+		false => fenboard.move_type.clone()
 	}
 }
 
