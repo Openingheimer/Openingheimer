@@ -91,11 +91,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let reader = parse_pgn(pgn.into());
 
-       *puzzle_master_clone.borrow_mut() = PuzzleMaster {
-            move_reader: reader.clone(),
-            next: Some(0),
-            ..Default::default()
-        };
+        let mut pm = puzzle_master_clone.borrow_mut();
+
+        pm.move_reader = reader.clone();
+        pm.next = Some(0);
 
         handle.set_fen(opening_position.to_shared_string());
         handle.set_player_color("w".to_shared_string());

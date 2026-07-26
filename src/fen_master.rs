@@ -25,13 +25,19 @@ use shakmaty::Chess;
 	let piece = get_piece_from_fen_code(&current_square_code);
 	let destination_piece = get_piece_from_fen_code(&destination_square_code);
 
-	FenBoard {
-		piece_placement: piece_placement.clone().into(),
-		fen64: piece_placement.replace("/", "").into(),
-		active_color: match fen_fields[1] {
+	let fen64 = piece_placement.replace("/", "");
+
+	let our_color =  match fen_fields[1] {
 			"w" => Color::White,
 			_ => Color::Black
-		},
+		};
+
+	let pinned_pieces = get_pinned_pieces(&fen64.chars().collect(), our_color.clone(), to64);
+
+	FenBoard {
+		piece_placement: piece_placement.clone().into(),
+		fen64: fen64.to_shared_string(),
+		active_color: our_color.clone(),
 		castling_availablity: fen_fields[2].to_string().into(),
 		en_passant: fen_fields[3].to_string().into(),
 		half_move_clock: fen_fields[4].parse::<i32>().unwrap(),
@@ -47,6 +53,8 @@ use shakmaty::Chess;
 		to_coords: to_coords,
 		move_type: MoveType::Normal,
 		san_move: "".into(),
+		pinned_pieces: pinned_pieces,
+		start_fen64: fen64.to_shared_string(),
 	}
 }
 
@@ -241,12 +249,14 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 	let piece = fenboard.from_piece.as_ref().unwrap();
     let file = fenboard.from_coords.chars().nth(0).unwrap();
 
+	let disambiguate = disambiguate_pieces(fenboard.clone(), piece.clone());
+
 	let san: SharedString = match piece.piece_type {
 		PieceType::Pawn if
 			fenboard.move_type == MoveType::Capture ||
 			fenboard.move_type == MoveType::CapturePromotion => file.to_shared_string(),
 	    PieceType::Pawn => SharedString::new(),
-	    _  => piece.as_fen().to_ascii_uppercase().to_shared_string(),
+	    _  => piece.as_fen().to_ascii_uppercase().to_shared_string() + &disambiguate,
 	};
 
 	let promotion_piece = &get_promotion_piece(piece.color.clone()).to_string();
@@ -362,6 +372,75 @@ pub fn get_king_square(fen64: SharedString, color: &Color) -> SharedString {
 		.0 as i32;
 
 	index64_to_square(index)
+}
+
+fn disambiguate_pieces(fenboard: FenBoard, piece: Piece) -> String {
+
+	let pieces_to_qualify: Vec<i32> =
+		get_confusers(fenboard.start_fen64.clone(), piece, fenboard.pinned_pieces)
+		    .iter()
+		    .map(|(i, p)| {
+		        (
+		            i.clone(),
+		            p.get_moves(fenboard.start_fen64.clone(), *i)
+		                .iter()
+		                .filter(|x| index64_to_square(fenboard.to64) == x)
+						.map(|x| x.clone())
+						.nth(0)
+		        )
+		    })
+			.filter(|x| x.1.is_some())
+			.map(|(i, _)| i)
+		    .collect();
+
+	match pieces_to_qualify.iter().count() {
+	    count if count > 1 => {
+
+			let moved_piece = pieces_to_qualify
+				.iter()
+				.cloned()
+				.find(|x| *x == fenboard.from64)
+				.map(|x| index64_to_square(x))
+				.unwrap();
+
+			let other_pieces: Vec<SharedString> = pieces_to_qualify
+				.iter()
+				.cloned()
+				.filter(|x| *x != fenboard.from64)
+				.map(|x| index64_to_square(x))
+				.collect();
+
+			let moved_piece_file = moved_piece.chars().nth(0).unwrap();
+			let moved_piece_rank = moved_piece.chars().nth(1).unwrap();
+
+			let other_piece_file = other_pieces
+				.iter()
+				.nth(0)
+				.unwrap()
+				.chars()
+				.nth(0)
+				.unwrap();
+
+			//only 2 pieces implemented
+			match moved_piece_file == other_piece_file {
+				true => moved_piece_rank.to_string(),
+				false => moved_piece_file.to_string(),
+			}
+		},
+		_ => String::new(),
+	}
+}
+
+fn get_confusers(star_fen64: SharedString, piece: Piece, pinned_pieces: Vec<i32>) -> Vec<(i32, Piece)> {
+	star_fen64
+		.chars()
+		.enumerate()
+		.map(|(i, x)| (i, get_piece_from_fen_code(&x)))
+		.filter(|(_, x)| x.is_some())
+		.map(|(i, x)| (i as i32, x.unwrap()))
+		.filter(|(_, x)| x.piece_type == piece.piece_type && x.color == piece.color)
+		.filter(|(i, _)| is_piece_pinned(pinned_pieces.clone(), *i) == false)
+		.collect()
 }
 
 pub fn get_piece_color_from_square(fen: SharedString, square: SharedString) -> SharedString {

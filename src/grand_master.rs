@@ -34,7 +34,7 @@ fn can_make_move(fenboard: FenBoard, piece: Piece) -> MoveResult {
 	if move_result.success == false ||
 	   piece.color != fenboard.active_color ||
 	   fenboard.from64 == fenboard.to64 ||
-	   is_piece_pinned(&fenboard) ||
+	   is_piece_pinned(fenboard.pinned_pieces, fenboard.from64) ||
 	   friendly_fire(&piece, &fenboard.to_piece) {
 
 		move_result.success = false;
@@ -229,14 +229,11 @@ fn get_squares_under_fire_for(fen: SharedString, color: &Color) -> Vec<SharedStr
 		.collect()
 }
 
-fn is_piece_pinned(fenboard: &FenBoard) -> bool {
-	get_pinned_pieces(&fenboard).contains(&fenboard.from64)
+pub fn is_piece_pinned(pinned_pieces: Vec<i32>, from64: i32) -> bool {
+	pinned_pieces.contains(&from64)
 }
 
-fn get_pinned_pieces(fenboard: &FenBoard) -> Vec<i32> {
-
-	let fen64: Vec<char> = fenboard.fen64.chars().collect();
-	let our_color = fenboard.from_piece.clone().unwrap().color;
+pub fn get_pinned_pieces(fen64: &Vec<char>, our_color: Color, to64: i32) -> Vec<i32> {
 
 	let enemy_pinners: Vec<(i32, PieceType)> = fen64
 		.clone()
@@ -278,7 +275,7 @@ fn get_pinned_pieces(fenboard: &FenBoard) -> Vec<i32> {
 
 	search_paths
 		.iter()
-		.map(|x| search_for_pinned_pieces(&fen64, x, &our_color, &fenboard.to64))
+		.map(|x| search_for_pinned_pieces(&fen64, x, &our_color, &to64))
 		.filter(|x| x.is_some())
 		.map(|x| x.unwrap())
 		.collect()

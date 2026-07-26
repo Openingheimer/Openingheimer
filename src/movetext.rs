@@ -5,7 +5,7 @@ use slint::{Model, ModelRc, VecModel};
 use slint::{ToSharedString};
 use std::rc::Rc;
 
-pub fn update_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
+pub fn to_san_move_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
 
     let current_move = reader.moves[reader.current.unwrap()].clone();
 

@@ -75,7 +75,7 @@ impl Visitor for MoveReader {
         self.current = Some(self.moves.len());
         self.moves.push(new_move);
 
-        update_rows(self, !position.turn());
+        to_san_move_rows(self, !position.turn());
 
         self.is_new_var = false;
         self.is_end_var = false;

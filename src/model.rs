@@ -91,6 +91,8 @@ pub struct FenBoard {
     pub to_coords: SharedString,
     pub move_type: MoveType,
     pub san_move: SharedString,
+    pub pinned_pieces: Vec<i32>,
+    pub start_fen64: SharedString,
 }
 
 impl FenBoard {
