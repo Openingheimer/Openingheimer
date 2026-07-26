@@ -100,6 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         handle.set_player_color("w".to_shared_string());
         handle.set_current_move(SanMove{ id: -2, ..Default::default() });
         handle.set_move_rows(Rc::new(slint::VecModel::from(reader.san_move_rows)).into());
+        scoll_to_top(&handle.as_weak());
     });
 
     let ui_clone = ui_handle.clone();
@@ -129,7 +130,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         };
 
-         handle.set_openings(Rc::new(slint::VecModel::from(entries)).into());
+        handle.set_openings(Rc::new(slint::VecModel::from(entries)).into());
     });
 
     ui.run()?;
@@ -212,6 +213,13 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: boo
     handle.invoke_clear_active_coords();
     handle.set_last_move_from(san_move.from_square.clone());
     handle.set_last_move_to(san_move.to_square.clone());
+}
+
+fn scoll_to_top(ui: &Weak<AppWindow>) {
+     let handle = ui.unwrap();
+
+    handle.invoke_scroll_to_index_y(0);
+    handle.invoke_scroll_to_index_x(0);
 }
 
 fn set_full_screen(ui: &AppWindow) -> Result<(), Box<dyn Error>> {
