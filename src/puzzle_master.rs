@@ -30,7 +30,7 @@ use crate::SanMove;
 
 			let move_made = result.fenboard.san_move.to_string();
 
-			let is_opening_move = opening_moves.iter().find(|x| x.1.san.contains(&move_made));
+			let is_opening_move = opening_moves.iter().find(|x| x.1.san.contains(&move_made) && result.success);
 
 			match is_opening_move {
 				Some(pm) if pm.1.next.is_none() &&
