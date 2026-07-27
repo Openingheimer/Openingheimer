@@ -269,8 +269,8 @@ fn update_en_passant(fenboard: &mut FenBoard) {
 			6 | 62 => "O-O".to_shared_string(),
 			_ => panic!("Illegal Castle")
 		},
-		MoveType::Promotion => fenboard.to_coords.to_shared_string() + "=" + promotion_piece,
-		MoveType::CapturePromotion => "x".to_shared_string() + &fenboard.to_coords + "=" + promotion_piece,
+		MoveType::Promotion => fenboard.to_coords.to_shared_string() + "=" + &promotion_piece.to_uppercase(),
+		MoveType::CapturePromotion => "x".to_shared_string() + &fenboard.to_coords + "=" + &promotion_piece.to_uppercase(),
 		MoveType::Check => panic!("Check Move Type is not implemented here"),
 		MoveType::Incorrect => panic!("Incorrect Move Type is not implemented here"),
 		MoveType::EndOfLine => panic!("EndOfLine Move Type is not implemented here"),
