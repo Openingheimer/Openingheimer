@@ -130,9 +130,11 @@ impl Visitor for MoveReader {
         match !last.position.turn() {
             shakmaty::Color::Black => {
                 move_row_node.black.san_text = last.san.to_shared_string();
+                move_row_node.blunder = move_row_node.blunder || last.san.contains("??");
             },
             shakmaty::Color::White => {
                 move_row_node.white.san_text = last.san.to_shared_string();
+                move_row_node.blunder = move_row_node.blunder || last.san.contains("??");
             }
         }
 

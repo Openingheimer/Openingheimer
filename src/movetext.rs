@@ -92,9 +92,10 @@ pub fn to_san_move_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                         true => {
                            let new_row = SanMoveRow {
                                 white: empty_san_move(),
-                                black: black_move,
+                                black: black_move.clone(),
                                 turn: reader.turn_number,
                                 depth: reader.depth,
+                                blunder: black_move.san_text.contains("??"),
                             };
 
                             reader.san_move_rows.push(new_row);
@@ -105,9 +106,10 @@ pub fn to_san_move_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                 true =>{
                     let new_row = SanMoveRow {
                             white: empty_san_move(),
-                            black: black_move,
+                            black: black_move.clone(),
                             turn: reader.turn_number,
                             depth: reader.depth,
+                            blunder: black_move.san_text.contains("??"),
                         };
 
                     let updated = prev_move_row.clone();
@@ -151,6 +153,7 @@ pub fn to_san_move_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
         black: empty_san_move(),
         depth: reader.depth,
         turn: reader.turn_number,
+        blunder: current_move.san.contains("??"),
     }
  }
 
