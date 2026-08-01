@@ -95,7 +95,7 @@ fn update_piece_placement(fenboard: &mut FenBoard) {
     piece_placement[fenboard.to_fen71] = from_piece.as_fen();
     piece_placement[fenboard.from_fen71] = '.';
 
-	update_castle_piece_placement(fenboard.clone(), &mut piece_placement);
+	update_castled_rooks(fenboard.clone(), &mut piece_placement);
 	update_en_passant_piece_placement(fenboard.clone(), &mut piece_placement);
 
 	if fenboard.move_type == MoveType::Promotion || fenboard.move_type == MoveType::CapturePromotion {
@@ -105,7 +105,7 @@ fn update_piece_placement(fenboard: &mut FenBoard) {
     fenboard.piece_placement = piece_placement.into_iter().collect::<String>().into();
 }
 
-fn update_castle_piece_placement(fenboard: FenBoard, piece_placement: &mut Vec<char>) {
+fn update_castled_rooks(fenboard: FenBoard, piece_placement: &mut Vec<char>) {
 
 	if fenboard.move_type == MoveType::Castle {
 

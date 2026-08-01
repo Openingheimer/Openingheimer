@@ -407,7 +407,7 @@ fn is_marching_forward(pawn: Piece, fenboard: FenBoard) -> bool {
 
 fn is_pawn_capture(pawn: Piece, fenboard: FenBoard) -> (bool, bool) {
 
-	let attempted_capture = is_attempting_pawn_capture(&pawn, fenboard.from64, fenboard.to64);
+	let attempted_capture = is_potential_capture(&pawn, fenboard.from64, fenboard.to64);
 
 	match fenboard.to_piece {
 		Some(p) if p.color != pawn.color && attempted_capture  => (true, false),
@@ -425,7 +425,7 @@ fn is_pawn_capture(pawn: Piece, fenboard: FenBoard) -> (bool, bool) {
 	}
 }
 
-fn is_attempting_pawn_capture(pawn: &Piece, from64: i32, to64: i32) -> bool {
+fn is_potential_capture(pawn: &Piece, from64: i32, to64: i32) -> bool {
 
 	let requested_move = (from64 - to64).abs();
 
@@ -456,10 +456,10 @@ pub fn get_pawn_attacked_squares(pawn: Piece, from64: i32) -> Vec<SharedString> 
 	};
 
 	attacked_squares
-	.iter()
-	.filter(|x| is_attempting_pawn_capture(&pawn, from64, **x))
-	.map(|x| index64_to_square(*x))
-	.collect()
+		.iter()
+		.filter(|x| is_potential_capture(&pawn, from64, **x))
+		.map(|x| index64_to_square(*x))
+		.collect()
 }
 
 fn is_promotion(to64: i32, color:Color) -> bool {

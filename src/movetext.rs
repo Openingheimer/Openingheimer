@@ -1,5 +1,6 @@
 
 use crate::fen_master::*;
+use crate::model::MoveType;
 use crate::{SanMoveRow, SanMove, model::MoveReader, model::MoveNode};
 use slint::{Model, ModelRc, VecModel};
 use slint::{ToSharedString};
@@ -80,6 +81,7 @@ pub fn to_san_move_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
                variation_id: current_move.variation_id,
                from_square: current_move.from_square.to_shared_string(),
                to_square: current_move.to_square.to_shared_string(),
+               move_type: current_move.move_type as i32,
             };
 
             match reader.is_new_var {
@@ -149,6 +151,7 @@ pub fn to_san_move_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
             variation_id: current_move.variation_id,
             from_square: current_move.from_square.to_shared_string(),
             to_square: current_move.to_square.to_shared_string(),
+            move_type: current_move.move_type as i32,
         },
         black: empty_san_move(),
         depth: reader.depth,
@@ -177,5 +180,6 @@ pub fn to_san_move_rows(reader: &mut MoveReader, move_color: shakmaty::Color) {
         variation_id: -1,
         from_square: "".into(),
         to_square: "".into(),
+        move_type: MoveType::default() as i32,
     }
  }

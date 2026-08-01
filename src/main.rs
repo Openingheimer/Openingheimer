@@ -30,7 +30,7 @@ use std::fs;
 fn main() -> Result<(), Box<dyn Error>> {
     let ui = AppWindow::new()?;
     let ui_handle = ui.as_weak();
-    let audio_player = AudioPlayer::new();
+    let audio_player = Rc::new(AudioPlayer::new());
 
     //set_full_screen(&ui)?;
 
@@ -48,6 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         get_piece_color_from_square(fen, square));
 
     let ui_clone = ui_handle.clone();
+    let audio_player1 = Rc::clone(&audio_player);
     let puzzle_master_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_make_move(move |fen, origin, destination| -> bool {
 
@@ -67,14 +68,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if success {
             do_go_to_position(&ui_clone, san_move, finished_line, finished_line_move);
+            audio_player1.play_sound(&move_type);
         }
-
-        audio_player.play_sound(&move_type);
+        else {
+            audio_player1.play_sound(&MoveType::Incorrect);
+        }
 
         success
     });
 
     let ui_clone = ui_handle.clone();
+    let audio_player2 = Rc::clone(&audio_player);
     let go_to_move_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_go_to_move(move |move_id| {
 
@@ -104,17 +108,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => panic!("No Move Found")
         };
 
-        do_go_to_position(&ui_clone, go_to_move, false, -1);
+        do_go_to_position(&ui_clone, go_to_move.clone(), false, -1);
+        audio_player2.play_sound(&MoveType::from_i32(go_to_move.move_type));
     });
 
     let ui_clone = ui_handle.clone();
+    let audio_player3 = Rc::clone(&audio_player);
     let go_to_position_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_go_to_position(move |san_move| {
 
         let mut pm = go_to_position_clone.borrow_mut();
         pm.next = Some(san_move.next_id as usize);
 
-        do_go_to_position(&ui_clone, san_move, false, -1);
+        do_go_to_position(&ui_clone, san_move.clone(), false, -1);
+        audio_player3.play_sound(&MoveType::from_i32(san_move.move_type));
     });
 
     let ui_clone = ui_handle.clone();
@@ -239,11 +246,11 @@ fn do_go_to_position(ui: &Weak<AppWindow>, san_move: SanMove, finished_line: boo
 
     handle.invoke_scroll_to_index_y(scroll_to.0 as i32);
     handle.invoke_scroll_to_index_x(scroll_to.1.depth);
+    handle.invoke_clear_active_coords();
 
     handle.set_fen(san_move.fen.clone());
     handle.set_current_move(san_move.clone());
     handle.set_player_color(player_color[1].to_shared_string());
-    handle.invoke_clear_active_coords();
     handle.set_last_move_from(san_move.from_square.clone());
     handle.set_last_move_to(san_move.to_square.clone());
 }

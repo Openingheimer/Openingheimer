@@ -2,6 +2,7 @@
 #[cfg(test)]
 mod move_text_builder_tests {
     use openingheimer::pgn_import::*;
+    use openingheimer::model::*;
     use slint::Model;
 
     #[test]
@@ -203,5 +204,37 @@ mod move_text_builder_tests {
         assert_ne!(first_var, third_var);
         assert_ne!(second_var, third_var);
         assert_eq!(main_line_end, first_var);
+    }
+
+    #[test]
+    fn set_move_type_normal() {
+        let result = parse_pgn("1. e4".into()).san_move_rows;
+
+        assert_eq!(result[0].white.san_text, "e4");
+        assert_eq!(result[0].white.move_type, MoveType::Normal as i32);
+    }
+
+    #[test]
+    fn set_move_type_capture() {
+        let result = parse_pgn("1. e4 d5. 2. exd5".into()).san_move_rows;
+
+        assert_eq!(result[1].white.san_text, "exd5");
+        assert_eq!(result[1].white.move_type, MoveType::Capture as i32);
+    }
+
+    #[test]
+    fn set_move_type_promote() {
+        let result = parse_pgn("1. g4 g5 2. h4 gxh4 3. g5 h3 4. g6 h2 5. g7 Nf6 6. gxh8=Q *".into()).san_move_rows;
+
+        assert_eq!(result[5].white.san_text, "gxh8=Q");
+        assert_eq!(result[5].white.move_type, MoveType::Promotion as i32);
+    }
+
+    #[test]
+    fn set_move_type_check() {
+        let result = parse_pgn("1. e4 d6 2. Bb5+".into()).san_move_rows;
+
+        assert_eq!(result[1].white.san_text, "Bb5+");
+        assert_eq!(result[1].white.move_type, MoveType::Check as i32);
     }
 }

@@ -46,14 +46,14 @@ use crate::SanMove;
 
 					puzzle_master.next = parent_line_move.next;
 
-					let san_move = create_san_move(parent_line_idx as i32, parent_line_move, fen);
+					let san_move = create_san_move(parent_line_idx as i32, parent_line_move, fen, result.fenboard.move_type);
 
 					(true, san_move, true, pm.0 as i32, MoveType::EndOfLine)
 				}
 				Some(pm) => {
 					puzzle_master.next = pm.1.next;
 
-					let san_move = create_san_move(pm.0 as i32, pm.1.clone(), result.fenboard.to_fen());
+					let san_move = create_san_move(pm.0 as i32, pm.1.clone(), result.fenboard.to_fen(), result.fenboard.move_type.clone());
 
 					(true, san_move, false, -1, result.fenboard.move_type)
 				}
@@ -64,7 +64,7 @@ use crate::SanMove;
 	}
  }
 
- fn create_san_move(id: i32, move_node: MoveNode, fen: SharedString) -> SanMove {
+ fn create_san_move(id: i32, move_node: MoveNode, fen: SharedString, move_type: MoveType) -> SanMove {
 	SanMove {
 		san_text: move_node.san.to_shared_string(),
 		fen: fen,
@@ -83,6 +83,7 @@ use crate::SanMove;
 		variation_id: move_node.variation_id,
 		from_square: move_node.from_square.into(),
 		to_square: move_node.to_square.into(),
+		move_type: move_type as i32,
 	}
  }
 

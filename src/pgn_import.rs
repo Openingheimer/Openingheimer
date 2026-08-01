@@ -1,6 +1,8 @@
+#![allow(unused_variables)]
 
 use crate::model::MoveReader;
 use crate::model::MoveNode;
+use crate::model::MoveType;
 use crate::model::next_variation_id;
 use crate::movetext::*;
 use std::ops::ControlFlow;
@@ -70,6 +72,7 @@ impl Visitor for MoveReader {
             variation_id: self.variation_ids.iter().last().copied().unwrap(),
             from_square: next_move.from().unwrap().to_string(),
             to_square: next_move.to().to_string(),
+            move_type: as_move_type(san_plus, suffix),
         };
 
         self.current = Some(self.moves.len());
@@ -151,6 +154,27 @@ impl Visitor for MoveReader {
 
     fn end_game(&mut self, movetext: Self::Movetext) -> Self::Output {
         movetext
+    }
+}
+
+fn as_move_type(san_plus: SanPlus, suffix: String) -> MoveType {
+    match san_plus.san {
+
+        _ if suffix.contains("+") => MoveType::Check,
+
+        shakmaty::san::San::Normal { role, file, rank, capture, to, promotion } => {
+            if promotion.is_some(){
+                return MoveType::Promotion;
+            }
+            if capture {
+                return MoveType::Capture;
+            }
+
+            MoveType::Normal
+        },
+
+        shakmaty::san::San::Castle(_) => MoveType::Castle,
+        _ => MoveType::Normal
     }
 }
 

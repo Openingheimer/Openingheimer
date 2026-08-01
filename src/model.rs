@@ -138,7 +138,9 @@ pub struct MovePath {
 
 #[derive(Clone)]
 #[derive(PartialEq)]
+#[derive(Default)]
 pub enum MoveType {
+    #[default]
     Normal,
     Capture,
     Castle,
@@ -147,6 +149,22 @@ pub enum MoveType {
     Check,
     Incorrect,
     EndOfLine,
+}
+
+impl MoveType {
+    pub fn from_i32(value: i32) -> Self {
+        match value {
+            0 => Self::Normal,
+            1 => Self::Capture,
+            2 => Self::Castle,
+            3 => Self::Promotion,
+            4 => Self::CapturePromotion,
+            5 => Self::Check,
+            6 => Self::Incorrect,
+            7 => Self::EndOfLine,
+            _ => Self::Normal,
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -224,6 +242,7 @@ pub struct MoveNode {
     pub variation_id: i32,
     pub from_square: String,
     pub to_square: String,
+    pub move_type: MoveType,
 }
 
 #[derive(Clone)]
