@@ -4,6 +4,7 @@ import {
     VerticalBox,
     HorizontalBox,
     ScrollView,
+    Button,
 } from "std-widgets.slint";
 
 import { MoveRow } from "moverow.slint";
@@ -21,6 +22,7 @@ export component MoveText {
     in-out property <SanMove> current_move;
 
     pure callback go_to_position(SanMove);
+    pure callback go_to_move(int);
     callback scroll_to_index_y(int);
     callback scroll_to_index_x(int);
 
@@ -31,27 +33,53 @@ export component MoveText {
     scroll_to_index_x(x) => {
     }
 
-    Rectangle {
-        background: dark;
+    VerticalLayout {
 
-        scroll := ScrollView {
+        Rectangle {
+            background: dark;
 
-            property <color> font_color: #E7E2E6;
+            scroll := ScrollView {
 
-            VerticalLayout {
+                property <color> font_color: #E7E2E6;
 
-                for move_row[i] in move_rows: HorizontalLayout {
+                VerticalLayout {
 
-                    height: 40px;
+                    for move_row[i] in move_rows: HorizontalLayout {
 
-                    property <color> bg: mod(i, 2) == 0 ? dark : light;
+                        height: 40px;
 
-                    MoveRow {
-                        move: move_row;
-                        background: bg;
-                        current_move: root.current_move;
-                        go_to_position(SanMove) => root.go_to_position(SanMove);
+                        property <color> bg: mod(i, 2) == 0 ? dark : light;
+
+                        MoveRow {
+                            move: move_row;
+                            background: bg;
+                            current_move: root.current_move;
+                            go_to_position(SanMove) => root.go_to_position(SanMove);
+                        }
                     }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            padding-top: 10px;
+            width: root.width / 2;
+            x: (root.width - self.width) / 2;
+
+            Rectangle {
+                Button {
+                    text: "<";
+                    width: 100px;
+                    clicked => root.go_to_move(current_move.previous_id);
+                }
+            }
+
+            Rectangle {
+
+                Button {
+                    text: ">";
+                    width: 100px;
+                    clicked => root.go_to_move(current_move.next_id);
                 }
             }
         }

@@ -10,6 +10,7 @@ export global Callbacks {
     pure callback make_move(string, string, string) -> bool;
     pure callback color_on_square(string, string) -> string;
     pure callback go_to_position(SanMove);
+    pure callback go_to_move(int);
     pure callback import_pgn(string);
     pure callback choose_pgn();
 }
@@ -67,6 +68,7 @@ export component AppWindow inherits Window {
             move_rows: root.move_rows;
             current_move: root.current_move;
             go_to_position(m) => Callbacks.go_to_position(m);
+            go_to_move(i) => Callbacks.go_to_move(i);
         }
 
         popup_import := PgnImport {
@@ -103,6 +105,20 @@ export component AppWindow inherits Window {
             keys: @keys(F);
             activated => {
                 chessboard.board_flip = -chessboard.board_flip;
+            }
+        }
+
+        KeyBinding {
+            keys: @keys(RightArrow);
+            activated => {
+                Callbacks.go_to_move(current_move.next_id);
+            }
+        }
+
+        KeyBinding {
+            keys: @keys(LeftArrow);
+            activated => {
+                Callbacks.go_to_move(current_move.previous_id);
             }
         }
     }

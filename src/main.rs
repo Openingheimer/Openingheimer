@@ -75,10 +75,43 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     let ui_clone = ui_handle.clone();
-    let puzzle_master_clone = puzzle_master.clone();
+    let go_to_move_clone = puzzle_master.clone();
+    ui.global::<Callbacks>().on_go_to_move(move |move_id| {
+
+        let mut pm = go_to_move_clone.borrow_mut();
+
+        let next_move = pm.move_reader.moves.get(move_id as usize);
+
+        if next_move.is_none() {
+            return;
+        }
+
+        pm.next = next_move.unwrap().next;
+
+        let white_move = pm.move_reader
+            .san_move_rows
+            .iter()
+            .find(|x| x.white.id == move_id);
+
+        let black_move = pm.move_reader
+            .san_move_rows
+            .iter()
+            .find(|x| x.black.id == move_id);
+
+        let go_to_move = match (white_move, black_move) {
+            (Some(w), _) => w.white.clone(),
+            (_, Some(b)) => b.black.clone(),
+            _ => panic!("No Move Found")
+        };
+
+        do_go_to_position(&ui_clone, go_to_move, false, -1);
+    });
+
+    let ui_clone = ui_handle.clone();
+    let go_to_position_clone = puzzle_master.clone();
     ui.global::<Callbacks>().on_go_to_position(move |san_move| {
 
-        let mut pm = puzzle_master_clone.borrow_mut();
+        let mut pm = go_to_position_clone.borrow_mut();
         pm.next = Some(san_move.next_id as usize);
 
         do_go_to_position(&ui_clone, san_move, false, -1);
